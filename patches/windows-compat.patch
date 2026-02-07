@@ -1,0 +1,122 @@
+--- a/src/cdo.cc
++++ b/src/cdo.cc
+@@ -14,7 +14,15 @@
+ 
+ #include <sys/stat.h>
+ 
++#ifdef _WIN32
++#include <io.h>
++#include <windows.h>
++#ifndef STDIN_FILENO
++#define STDIN_FILENO 0
++#endif
++#else
+ #include <unistd.h>  // sysconf
++#endif
+ #include <cstring>
+ #include <cstdlib>
+ #include <csignal>
+@@ -120,12 +128,24 @@
+ static void
+ cdo_init_is_tty()
+ {
++#ifdef _WIN32
++  HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
++  HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
++  HANDLE hStderr = GetStdHandle(STD_ERROR_HANDLE);
++  DWORD mode;
++  if (hStdin != INVALID_HANDLE_VALUE && GetConsoleMode(hStdin, &mode))
++    cdo::stdinIsTerminal = true;
++  if (hStdout != INVALID_HANDLE_VALUE && GetConsoleMode(hStdout, &mode))
++    cdo::stdoutIsTerminal = true;
++  if (hStderr != INVALID_HANDLE_VALUE && GetConsoleMode(hStderr, &mode))
++    cdo::stderrIsTerminal = true;
++#else
+   struct stat statbuf;
+   fstat(0, &statbuf);
+   if (S_ISCHR(statbuf.st_mode)) { cdo::stdinIsTerminal = true; }
+   fstat(1, &statbuf);
+   if (S_ISCHR(statbuf.st_mode)) { cdo::stdoutIsTerminal = true; }
+   fstat(2, &statbuf);
+   if (S_ISCHR(statbuf.st_mode)) { cdo::stderrIsTerminal = true; }
++#endif
+ }
+ 
+--- a/src/merge_axis.cc
++++ b/src/merge_axis.cc
+@@ -7,7 +7,9 @@
+ #include "config.h"
+ #endif
+ 
++#ifndef _WIN32
+ #include <unistd.h>
++#endif
+ 
+--- a/src/griddes.cc
++++ b/src/griddes.cc
+@@ -7,7 +7,9 @@
+ #include "config.h"
+ #endif
+ 
++#ifndef _WIN32
+ #include <unistd.h>
++#endif
+ 
+--- a/src/dcw_reader.cc
++++ b/src/dcw_reader.cc
+@@ -15,7 +15,9 @@
+ #include "config.h"
+ #endif
+ 
++#ifndef _WIN32
+ #include <unistd.h>
++#endif
+ 
+--- a/src/CMOR.cc
++++ b/src/CMOR.cc
+@@ -60,7 +60,9 @@
+ #include "config.h"
+ #endif
+ 
++#ifndef _WIN32
+ #include <unistd.h>
++#endif
+ 
+--- a/src/cdo_zaxis.cc
++++ b/src/cdo_zaxis.cc
+@@ -8,7 +8,9 @@
+ #include "config.h"
+ #endif
+ 
++#ifndef _WIN32
+ #include <unistd.h>
++#endif
+ 
+--- a/src/cdo_getopt.cc
++++ b/src/cdo_getopt.cc
+@@ -19,7 +19,11 @@
+ #include "config.h"
+ #endif
+ 
++#ifdef _WIN32
++#include <io.h>
++#else
+ #include <unistd.h>
++#endif
+ 
+--- a/src/expr_lex.cc
++++ b/src/expr_lex.cc
+@@ -559,7 +559,9 @@
+ #include <string.h>
+ #include <errno.h>
+ #include <stdlib.h>
++#ifndef _WIN32
+ #include <unistd.h>
++#endif
+ 
+--- a/src/cdo_settings.cc
++++ b/src/cdo_settings.cc
+@@ -0,0 +1,10 @@
++// Windows: provide empty set_stacksize/set_coresize if getrlimit unavailable
++// This is handled by existing #ifdef HAVE_GETRLIMIT guards in the source.
++// No additional patch needed as configure will not define HAVE_GETRLIMIT on Windows.

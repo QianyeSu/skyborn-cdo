@@ -1,0 +1,2 @@
+# Keep this directory — CDO binary will be placed here during wheel build.
+# This file is needed so git tracks the empty directory.

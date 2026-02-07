@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skyborn-cdo"
+version = "2.5.3.0"
+description = "Pre-compiled CDO (Climate Data Operators) binary distributed as a Python package — backend for Skyborn"
+readme = "README.md"
+authors = [{ name = "Qianye Su", email = "suqianye2000@gmail.com" }]
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+keywords = [
+    "cdo",
+    "climate",
+    "meteorology",
+    "netcdf",
+    "grib",
+    "data-operators",
+    "skyborn",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+]
+
+[project.urls]
+Homepage = "https://github.com/QianyeSu/Skyborn"
+Repository = "https://github.com/QianyeSu/skyborn-cdo"
+Issues = "https://github.com/QianyeSu/skyborn-cdo/issues"
+Documentation = "https://code.mpimet.mpg.de/projects/cdo"
+
+[project.optional-dependencies]
+xarray = ["xarray", "netCDF4"]
+test = ["pytest>=7.0", "numpy"]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"skyborn_cdo" = ["bin/*", "bin/**/*", "share/**/*", "lib/*", "lib/**/*"]
+
+[project.entry-points.console_scripts]
+skyborn-cdo = "skyborn_cdo._cli:main"

@@ -1,0 +1,57 @@
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+wheelhouse/
+
+# Compiled CDO binaries and libs (shipped in wheels, not in git)
+src/skyborn_cdo/bin/cdo
+src/skyborn_cdo/bin/cdo.exe
+src/skyborn_cdo/bin/*.dll
+src/skyborn_cdo/bin/*.so
+src/skyborn_cdo/bin/*.dylib
+src/skyborn_cdo/lib/
+src/skyborn_cdo/share/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+*.nc
+!tests/data/*.nc
+
+# CDO vendor source (added as submodule or copied locally for builds)
+# Exclude from main git to keep repo size small
+vendor/cdo/
+
+# CDO build artifacts
+vendor/cdo/config.h
+vendor/cdo/config.log
+vendor/cdo/config.status
+vendor/cdo/Makefile
+vendor/cdo/src/.libs/
+vendor/cdo/src/*.o
+vendor/cdo/src/*.lo
+vendor/cdo/src/cdo

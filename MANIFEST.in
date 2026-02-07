@@ -1,0 +1,22 @@
+include LICENSE
+include README.md
+include pyproject.toml
+include setup.py
+
+recursive-include src/skyborn_cdo *.py *.c
+recursive-include src/skyborn_cdo/bin *
+recursive-include src/skyborn_cdo/lib *
+recursive-include src/skyborn_cdo/share *
+
+recursive-include scripts *.sh
+recursive-include patches *.patch
+recursive-include tests *.py
+
+# Vendor CDO source (for sdist)
+recursive-include vendor/cdo *.cc *.h *.c *.m4 *.am *.in *.ac
+include vendor/cdo/configure
+include vendor/cdo/LICENSE
+include vendor/cdo/AUTHORS
+
+prune vendor/cdo/test
+prune vendor/cdo/doc
