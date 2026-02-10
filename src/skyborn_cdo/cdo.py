@@ -203,9 +203,18 @@ class Cdo:
         input_files = []
         if input is not None:
             if isinstance(input, (list, tuple)):
-                input_files = list(input)
+                input_files = [str(f) for f in input]
+            elif isinstance(input, str):
+                # On Windows, shlex.split with default posix=True eats backslashes.
+                # Use posix=False on Windows to preserve path separators.
+                if os.name == 'nt':
+                    input_files = shlex.split(input, posix=False)
+                    # Remove surrounding quotes that shlex leaves in posix=False mode
+                    input_files = [f.strip('"').strip("'") for f in input_files]
+                else:
+                    input_files = shlex.split(str(input))
             else:
-                input_files = shlex.split(str(input))
+                input_files = [str(input)]
 
         # Handle return types that need a temp file
         need_output_file = returnXArray or returnXDataset or returnCdf or returnArray or returnMaArray

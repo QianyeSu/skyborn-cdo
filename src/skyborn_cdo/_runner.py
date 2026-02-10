@@ -159,7 +159,11 @@ class CdoRunner:
         CdoError
             If CDO exits with non-zero return code.
         """
-        parts = shlex.split(cmd_string)
+        if os.name == 'nt':
+            parts = shlex.split(cmd_string, posix=False)
+            parts = [p.strip('"').strip("'") for p in parts]
+        else:
+            parts = shlex.split(cmd_string)
 
         # Strip leading 'cdo' if present
         if parts and parts[0].lower() in ("cdo", "cdo.exe"):

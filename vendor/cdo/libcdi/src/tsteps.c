@@ -34,8 +34,7 @@ tstepsInitEntry(tsteps_t *tstep)
   ptaxisInit(&(tstep->taxis));
 }
 
-int
-tstepsNewEntry(stream_t *streamptr)
+int tstepsNewEntry(stream_t *streamptr)
 {
   int tsID = streamptr->tstepsNextID++;
   int tstepsTableSize = streamptr->tstepsTableSize;
@@ -44,7 +43,8 @@ tstepsNewEntry(stream_t *streamptr)
   // If the table overflows, double its size.
   if (tsID == tstepsTableSize)
   {
-    if (tstepsTableSize == 0) tstepsTableSize = 1;
+    if (tstepsTableSize == 0)
+      tstepsTableSize = 1;
     if (tstepsTableSize <= INT_MAX / 2)
       tstepsTableSize *= 2;
     else if (tstepsTableSize < INT_MAX)
@@ -52,7 +52,7 @@ tstepsNewEntry(stream_t *streamptr)
     else
       Error("Resizing of tstep table failed!");
 
-    tstepsTable = (tsteps_t *) Realloc(tstepsTable, (size_t) tstepsTableSize * sizeof(tsteps_t));
+    tstepsTable = (tsteps_t *)Realloc(tstepsTable, (size_t)tstepsTableSize * sizeof(tsteps_t));
   }
 
   streamptr->tstepsTableSize = tstepsTableSize;
@@ -64,21 +64,24 @@ tstepsNewEntry(stream_t *streamptr)
   return tsID;
 }
 
-void
-cdi_create_timesteps(size_t numTimesteps, stream_t *streamptr)
+void cdi_create_timesteps(size_t numTimesteps, stream_t *streamptr)
 {
-  streamptr->ntsteps = (long) numTimesteps;
-  if (streamptr->tstepsTableSize > 0) return;
+  streamptr->ntsteps = (long)numTimesteps;
+  if (streamptr->tstepsTableSize > 0)
+    return;
 
   size_t ntsteps = (numTimesteps == 0) ? 1 : numTimesteps;
 
-  streamptr->tsteps = (tsteps_t *) Malloc(ntsteps * sizeof(tsteps_t));
+  streamptr->tsteps = (tsteps_t *)Malloc(ntsteps * sizeof(tsteps_t));
   memset(streamptr->tsteps, 0, ntsteps * sizeof(tsteps_t));
 
-  streamptr->tstepsTableSize = (int) ntsteps;
-  streamptr->tstepsNextID = (int) ntsteps;
+  streamptr->tstepsTableSize = (int)ntsteps;
+  streamptr->tstepsNextID = (int)ntsteps;
 
-  for (size_t tsID = 0; tsID < ntsteps; tsID++) { tstepsInitEntry(&streamptr->tsteps[tsID]); }
+  for (size_t tsID = 0; tsID < ntsteps; tsID++)
+  {
+    tstepsInitEntry(&streamptr->tsteps[tsID]);
+  }
 }
 /*
  * Local Variables:
