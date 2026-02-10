@@ -120,7 +120,7 @@ HDF5_URL="https://github.com/HDFGroup/hdf5/releases/download/hdf5_${HDF5_TAG}/hd
 wget -q "${HDF5_URL}" -O "hdf5-${HDF5_VERSION}.tar.gz" || \
     wget -q "https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.14/hdf5-${HDF5_VERSION}/src/hdf5-${HDF5_VERSION}.tar.gz" -O "hdf5-${HDF5_VERSION}.tar.gz"
 tar xf "hdf5-${HDF5_VERSION}.tar.gz"
-cd "hdf5-${HDF5_VERSION}"*
+cd "$(ls -d hdf5-${HDF5_VERSION}*/ | head -n1)"
 ./configure \
     --prefix="${PREFIX}" \
     --enable-shared \
@@ -137,9 +137,11 @@ echo "--- HDF5 installed ---"
 # ---- 4. NetCDF-C ----
 echo "--- Building NetCDF-C ---"
 cd "${BUILD_DIR}"
-wget -q "https://github.com/Unidata/netcdf-c/releases/download/v${NETCDF_VERSION}/netcdf-c-${NETCDF_VERSION}.tar.gz" -O "netcdf-c-${NETCDF_VERSION}.tar.gz"
+wget -q "https://github.com/Unidata/netcdf-c/releases/download/v${NETCDF_VERSION}/netcdf-c-${NETCDF_VERSION}.tar.gz" -O "netcdf-c-${NETCDF_VERSION}.tar.gz" || \
+    wget -q "https://github.com/Unidata/netcdf-c/archive/refs/tags/v${NETCDF_VERSION}.tar.gz" -O "netcdf-c-${NETCDF_VERSION}.tar.gz" || \
+    wget -q "https://downloads.unidata.ucar.edu/netcdf-c/${NETCDF_VERSION}/netcdf-c-${NETCDF_VERSION}.tar.gz" -O "netcdf-c-${NETCDF_VERSION}.tar.gz"
 tar xf "netcdf-c-${NETCDF_VERSION}.tar.gz"
-cd "netcdf-c-${NETCDF_VERSION}"
+cd "$(ls -d netcdf-c-${NETCDF_VERSION}*/ | head -n1)"
 CPPFLAGS="-I${PREFIX}/include" LDFLAGS="-L${PREFIX}/lib -L${PREFIX}/lib64" \
     ./configure \
     --prefix="${PREFIX}" \
@@ -159,7 +161,7 @@ cd "${BUILD_DIR}"
 wget -q "https://github.com/ecmwf/eccodes/archive/refs/tags/${ECCODES_VERSION}.tar.gz" -O "eccodes-${ECCODES_VERSION}.tar.gz" || \
     wget -q "https://confluence.ecmwf.int/download/attachments/45757960/eccodes-${ECCODES_VERSION}-Source.tar.gz" -O "eccodes-${ECCODES_VERSION}.tar.gz"
 tar xf "eccodes-${ECCODES_VERSION}.tar.gz"
-cd "eccodes-${ECCODES_VERSION}"* || cd "eccodes-${ECCODES_VERSION}-Source"*
+cd "$(ls -d eccodes-${ECCODES_VERSION}*/ | head -n1)"
 mkdir -p build && cd build
 cmake .. \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
