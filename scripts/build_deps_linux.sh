@@ -101,7 +101,7 @@ build_from_tar "zlib" \
 # ---- 2. libaec (SZIP replacement) ----
 echo "--- Building libaec ---"
 cd "${BUILD_DIR}"
-wget -q "https://github.com/MathisRosworski/libaec/releases/download/v${LIBAEC_VERSION}/libaec-${LIBAEC_VERSION}.tar.gz" -O "libaec-${LIBAEC_VERSION}.tar.gz"
+wget -q "https://github.com/MathisRosenhauer/libaec/releases/download/v${LIBAEC_VERSION}/libaec-${LIBAEC_VERSION}.tar.gz" -O "libaec-${LIBAEC_VERSION}.tar.gz"
 tar xf "libaec-${LIBAEC_VERSION}.tar.gz"
 cd "libaec-${LIBAEC_VERSION}"
 mkdir -p build && cd build

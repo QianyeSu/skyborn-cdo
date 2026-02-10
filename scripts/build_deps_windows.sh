@@ -40,8 +40,9 @@ export CPPFLAGS="-I${PREFIX}/include"
 ECCODES_VERSION="2.38.0"
 echo "--- Building ecCodes ---"
 cd "${BUILD_DIR}"
-wget -q "https://github.com/ecmwf/eccodes/archive/refs/tags/${ECCODES_VERSION}.tar.gz" -O "eccodes-${ECCODES_VERSION}.tar.gz" || \
-    wget -q "https://confluence.ecmwf.int/download/attachments/45757960/eccodes-${ECCODES_VERSION}-Source.tar.gz" -O "eccodes-${ECCODES_VERSION}.tar.gz"
+wget -q "https://confluence.ecmwf.int/download/attachments/45757960/eccodes-${ECCODES_VERSION}-Source.tar.gz" -O "eccodes-${ECCODES_VERSION}.tar.gz" || \
+    wget -q "https://github.com/ecmwf/eccodes/archive/refs/tags/${ECCODES_VERSION}.tar.gz" -O "eccodes-${ECCODES_VERSION}.tar.gz"
+export MSYS=winsymlinks:lnk
 tar xf "eccodes-${ECCODES_VERSION}.tar.gz"
 cd "eccodes-${ECCODES_VERSION}"* || cd "eccodes-${ECCODES_VERSION}-Source"*
 mkdir -p build && cd build
@@ -79,7 +80,7 @@ echo "--- UDUNITS2 installed ---"
 LIBAEC_VERSION="1.1.3"
 echo "--- Building libaec ---"
 cd "${BUILD_DIR}"
-wget -q "https://github.com/MathisRosworski/libaec/releases/download/v${LIBAEC_VERSION}/libaec-${LIBAEC_VERSION}.tar.gz" -O "libaec-${LIBAEC_VERSION}.tar.gz"
+wget -q "https://github.com/MathisRosenhauer/libaec/releases/download/v${LIBAEC_VERSION}/libaec-${LIBAEC_VERSION}.tar.gz" -O "libaec-${LIBAEC_VERSION}.tar.gz"
 tar xf "libaec-${LIBAEC_VERSION}.tar.gz"
 cd "libaec-${LIBAEC_VERSION}"
 mkdir -p build && cd build

@@ -82,7 +82,7 @@ build_autotools "zlib" \
 # ---- 2. libaec ----
 echo "--- Building libaec ---"
 cd "${BUILD_DIR}"
-curl -fsSL "https://github.com/MathisRosworski/libaec/releases/download/v${LIBAEC_VERSION}/libaec-${LIBAEC_VERSION}.tar.gz" -o "libaec-${LIBAEC_VERSION}.tar.gz"
+curl -fsSL "https://github.com/MathisRosenhauer/libaec/releases/download/v${LIBAEC_VERSION}/libaec-${LIBAEC_VERSION}.tar.gz" -o "libaec-${LIBAEC_VERSION}.tar.gz"
 tar xf "libaec-${LIBAEC_VERSION}.tar.gz"
 cd "libaec-${LIBAEC_VERSION}"
 mkdir -p build && cd build

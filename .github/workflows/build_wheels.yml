@@ -99,6 +99,8 @@ jobs:
         env:
           CIBW_BUILD: "cp310-macosx_arm64 cp311-macosx_arm64 cp312-macosx_arm64 cp313-macosx_arm64"
           CIBW_BEFORE_ALL_MACOS: >
+            sudo mkdir -p /opt/cdo-deps /opt/cdo-install &&
+            sudo chown -R $(whoami) /opt/cdo-deps /opt/cdo-install &&
             bash {project}/scripts/build_deps_macos.sh &&
             bash {project}/scripts/build_cdo.sh
           CIBW_ENVIRONMENT_MACOS: >
