@@ -23,30 +23,11 @@ echo "  PREFIX:    ${PREFIX}"
 echo "  JOBS:      ${JOBS}"
 echo "============================================"
 
-# Install available packages via pacman (much faster than compiling)
-echo "--- Installing packages via pacman ---"
-pacman -S --noconfirm --needed \
-    mingw-w64-x86_64-gcc \
-    mingw-w64-x86_64-gcc-fortran \
-    mingw-w64-x86_64-cmake \
-    mingw-w64-x86_64-make \
-    mingw-w64-x86_64-pkg-config \
-    mingw-w64-x86_64-zlib \
-    mingw-w64-x86_64-hdf5 \
-    mingw-w64-x86_64-netcdf \
-    mingw-w64-x86_64-fftw \
-    mingw-w64-x86_64-proj \
-    mingw-w64-x86_64-libtool \
-    mingw-w64-x86_64-autotools \
-    make \
-    autoconf \
-    automake \
-    libtool \
-    perl \
-    wget \
-    patch
+# NOTE: Base packages (gcc, cmake, hdf5, netcdf, fftw, proj, etc.) are
+#       installed by the GitHub Actions workflow via setup-msys2 `install:`.
+#       This script only builds libraries NOT available in MSYS2 repos.
 
-# ecCodes and UDUNITS2 are generally not in MSYS2 repos, build from source
+# ecCodes and UDUNITS2 are not in MSYS2 repos, build from source
 mkdir -p "${BUILD_DIR}"
 
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
@@ -59,10 +40,10 @@ export CPPFLAGS="-I${PREFIX}/include"
 ECCODES_VERSION="2.38.0"
 echo "--- Building ecCodes ---"
 cd "${BUILD_DIR}"
-wget -q "https://confluence.ecmwf.int/download/attachments/45757960/eccodes-${ECCODES_VERSION}-Source.tar.gz" -O "eccodes-${ECCODES_VERSION}.tar.gz" || \
-    wget -q "https://github.com/ecmwf/eccodes/releases/download/${ECCODES_VERSION}/eccodes-${ECCODES_VERSION}-Source.tar.gz" -O "eccodes-${ECCODES_VERSION}.tar.gz"
+wget -q "https://github.com/ecmwf/eccodes/archive/refs/tags/${ECCODES_VERSION}.tar.gz" -O "eccodes-${ECCODES_VERSION}.tar.gz" || \
+    wget -q "https://confluence.ecmwf.int/download/attachments/45757960/eccodes-${ECCODES_VERSION}-Source.tar.gz" -O "eccodes-${ECCODES_VERSION}.tar.gz"
 tar xf "eccodes-${ECCODES_VERSION}.tar.gz"
-cd "eccodes-${ECCODES_VERSION}-Source"* || cd "eccodes-${ECCODES_VERSION}"*
+cd "eccodes-${ECCODES_VERSION}"* || cd "eccodes-${ECCODES_VERSION}-Source"*
 mkdir -p build && cd build
 cmake .. -G "MinGW Makefiles" \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \

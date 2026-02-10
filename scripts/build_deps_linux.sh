@@ -75,7 +75,7 @@ build_from_tar() {
     fi
 
     local dir
-    dir=$(tar tf "${archive}" | head -1 | cut -d/ -f1)
+    dir=$(set +o pipefail; tar tf "${archive}" | head -1 | cut -d/ -f1)
     rm -rf "${dir}"
     tar xf "${archive}"
     cd "${dir}"
@@ -156,10 +156,10 @@ echo "--- NetCDF-C installed ---"
 # ---- 5. ecCodes ----
 echo "--- Building ecCodes ---"
 cd "${BUILD_DIR}"
-wget -q "https://confluence.ecmwf.int/download/attachments/45757960/eccodes-${ECCODES_VERSION}-Source.tar.gz" -O "eccodes-${ECCODES_VERSION}.tar.gz" || \
-    wget -q "https://github.com/ecmwf/eccodes/releases/download/${ECCODES_VERSION}/eccodes-${ECCODES_VERSION}-Source.tar.gz" -O "eccodes-${ECCODES_VERSION}.tar.gz"
+wget -q "https://github.com/ecmwf/eccodes/archive/refs/tags/${ECCODES_VERSION}.tar.gz" -O "eccodes-${ECCODES_VERSION}.tar.gz" || \
+    wget -q "https://confluence.ecmwf.int/download/attachments/45757960/eccodes-${ECCODES_VERSION}-Source.tar.gz" -O "eccodes-${ECCODES_VERSION}.tar.gz"
 tar xf "eccodes-${ECCODES_VERSION}.tar.gz"
-cd "eccodes-${ECCODES_VERSION}-Source"*
+cd "eccodes-${ECCODES_VERSION}"* || cd "eccodes-${ECCODES_VERSION}-Source"*
 mkdir -p build && cd build
 cmake .. \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \

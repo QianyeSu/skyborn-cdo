@@ -58,6 +58,7 @@ echo "[skyborn-cdo] Configuring CDO..."
     --with-udunits2="${DEPS_PREFIX}" \
     --with-szlib="${DEPS_PREFIX}" \
     --disable-fortran \
+    --disable-across \
     --enable-cgribex \
     CPPFLAGS="-I${DEPS_PREFIX}/include" \
     LDFLAGS="-L${DEPS_PREFIX}/lib -L${DEPS_PREFIX}/lib64 -Wl,-rpath,'\$ORIGIN/../lib'" \
