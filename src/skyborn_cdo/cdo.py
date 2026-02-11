@@ -371,7 +371,10 @@ class Cdo:
 
     def __del__(self):
         """Clean up temp files on garbage collection."""
-        self.cleanup()
+        try:
+            self.cleanup()
+        except Exception:
+            pass
 
     def __repr__(self) -> str:
         return f"Cdo(cdo_path='{self._cdo_path}', options={self._default_options})"

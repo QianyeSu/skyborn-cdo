@@ -77,6 +77,7 @@ jobs:
             (cp -r /opt/cdo-deps/share/udunits {project}/src/skyborn_cdo/share/ 2>/dev/null || true) &&
             ls -la {project}/src/skyborn_cdo/bin/
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: >
+            LD_LIBRARY_PATH=/opt/cdo-deps/lib:/opt/cdo-deps/lib64:/opt/cdo-install/lib
             auditwheel repair -w {dest_dir} {wheel}
           CIBW_TEST_COMMAND: >
             python -c "from skyborn_cdo import Cdo; print(Cdo().version())"
@@ -133,6 +134,7 @@ jobs:
             (cp -r /opt/cdo-deps/share/udunits {project}/src/skyborn_cdo/share/ 2>/dev/null || true) &&
             ls -la {project}/src/skyborn_cdo/bin/
           CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
+            DYLD_LIBRARY_PATH=/opt/cdo-deps/lib:/opt/cdo-install/lib
             delocate-wheel --require-archs arm64 -w {dest_dir} {wheel}
           CIBW_TEST_COMMAND: >
             python -c "from skyborn_cdo import Cdo; print(Cdo().version())"
