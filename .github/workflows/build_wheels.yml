@@ -120,7 +120,7 @@ jobs:
             SKYBORN_CDO_BUILD=0
             CDO_DEPS_PREFIX=/opt/cdo-deps
             CDO_INSTALL_PREFIX=/opt/cdo-install
-            MACOSX_DEPLOYMENT_TARGET=11.0
+            MACOSX_DEPLOYMENT_TARGET=14.0
           CIBW_BEFORE_BUILD_MACOS: >
             mkdir -p {project}/src/skyborn_cdo/bin &&
             cp /opt/cdo-install/bin/cdo {project}/src/skyborn_cdo/bin/ &&

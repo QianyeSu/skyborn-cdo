@@ -68,6 +68,13 @@ export LD_LIBRARY_PATH="${DEPS_PREFIX}/lib:${DEPS_PREFIX}/lib64:${LD_LIBRARY_PAT
 
 echo "[skyborn-cdo] Configuring CDO..."
 
+# Build rpath flag: use @loader_path on macOS, $ORIGIN on Linux
+if [[ "$(uname)" == "Darwin" ]]; then
+    RPATH_FLAG="-Wl,-rpath,@loader_path/../lib"
+else
+    RPATH_FLAG='-Wl,-rpath,$ORIGIN/../lib'
+fi
+
 ./configure \
     --prefix="${INSTALL_PREFIX}" \
     --with-netcdf="${DEPS_PREFIX}" \
@@ -81,7 +88,7 @@ echo "[skyborn-cdo] Configuring CDO..."
     --disable-across \
     --enable-cgribex \
     CPPFLAGS="-I${DEPS_PREFIX}/include" \
-    LDFLAGS="-L${DEPS_PREFIX}/lib -L${DEPS_PREFIX}/lib64 -Wl,-rpath,'\$ORIGIN/../lib'" \
+    LDFLAGS="-L${DEPS_PREFIX}/lib -L${DEPS_PREFIX}/lib64 ${RPATH_FLAG}" \
     LIBS="-lz -lm"
 
 echo "[skyborn-cdo] Building CDO..."
@@ -89,6 +96,13 @@ make -j"${JOBS}"
 
 echo "[skyborn-cdo] Installing CDO..."
 make install
+
+# On macOS, add rpath to the deps lib directory so delocate can find dylibs
+if [[ "$(uname)" == "Darwin" && -f "${INSTALL_PREFIX}/bin/cdo" ]]; then
+    echo "[skyborn-cdo] Setting macOS rpaths..."
+    install_name_tool -add_rpath "${DEPS_PREFIX}/lib" "${INSTALL_PREFIX}/bin/cdo" 2>/dev/null || true
+    install_name_tool -add_rpath "@loader_path/../lib" "${INSTALL_PREFIX}/bin/cdo" 2>/dev/null || true
+fi
 
 echo "============================================"
 echo "CDO build complete!"
