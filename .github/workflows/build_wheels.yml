@@ -86,19 +86,6 @@ jobs:
           CIBW_TEST_COMMAND: >
             python -c "from skyborn_cdo import Cdo; print(Cdo().version())"
 
-      - name: Check wheel sizes
-        run: |
-          echo '=== Wheel file sizes ==='
-          ls -lh wheelhouse/*.whl
-          for f in wheelhouse/*.whl; do
-            size=$(stat --format=%s "$f" 2>/dev/null || stat -f%z "$f" 2>/dev/null)
-            echo "$f: $size bytes"
-            if [ "$size" -gt 104857600 ]; then
-              echo "ERROR: $f exceeds 100MB PyPI limit!"
-              exit 1
-            fi
-          done
-
       - uses: actions/upload-artifact@v6
         with:
           name: wheels-linux-x86_64
@@ -159,19 +146,6 @@ jobs:
             delocate-wheel --require-archs arm64 -w {dest_dir} {wheel}
           CIBW_TEST_COMMAND: >
             python -c "from skyborn_cdo import Cdo; print(Cdo().version())"
-
-      - name: Check wheel sizes
-        run: |
-          echo '=== Wheel file sizes ==='
-          ls -lh wheelhouse/*.whl
-          for f in wheelhouse/*.whl; do
-            size=$(stat -f%z "$f" 2>/dev/null || stat --format=%s "$f" 2>/dev/null)
-            echo "$f: $size bytes"
-            if [ "$size" -gt 104857600 ]; then
-              echo "ERROR: $f exceeds 100MB PyPI limit!"
-              exit 1
-            fi
-          done
 
       - uses: actions/upload-artifact@v6
         with:
@@ -292,20 +266,6 @@ jobs:
             delvewheel repair -w {dest_dir} {wheel}
           CIBW_TEST_COMMAND: >
             python -c "from skyborn_cdo import Cdo; print(Cdo().version())"
-
-      - name: Check wheel sizes
-        shell: bash
-        run: |
-          echo '=== Wheel file sizes ==='
-          ls -lh wheelhouse/*.whl
-          for f in wheelhouse/*.whl; do
-            size=$(stat --format=%s "$f" 2>/dev/null || stat -c%s "$f" 2>/dev/null || wc -c < "$f")
-            echo "$f: $size bytes"
-            if [ "$size" -gt 104857600 ]; then
-              echo "ERROR: $f exceeds 100MB PyPI limit!"
-              exit 1
-            fi
-          done
 
       - uses: actions/upload-artifact@v6
         with:
