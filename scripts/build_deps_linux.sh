@@ -149,7 +149,6 @@ CPPFLAGS="-I${PREFIX}/include" LDFLAGS="-L${PREFIX}/lib -L${PREFIX}/lib64" \
     --disable-static \
     --enable-netcdf-4 \
     --disable-dap \
-    --disable-dap4 \
     --disable-byterange \
     --disable-testsets \
     --disable-libxml2 \

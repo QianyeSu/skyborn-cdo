@@ -132,10 +132,8 @@ CPPFLAGS="-I${PREFIX}/include" LDFLAGS="-L${PREFIX}/lib -arch ${ARCH}" \
     --disable-static \
     --enable-netcdf-4 \
     --disable-dap \
-    --disable-dap4 \
     --disable-byterange \
     --disable-testsets \
-    --disable-libxml2 \
     --disable-nczarr
 make -j"${JOBS}"
 make install

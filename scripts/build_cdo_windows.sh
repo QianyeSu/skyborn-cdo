@@ -84,6 +84,11 @@ echo "[skyborn-cdo] Configuring CDO for Windows..."
     LIBS="-lz -lm -lws2_32 -lrpcrt4"
 
 echo "[skyborn-cdo] Building CDO..."
+# Disable libcdi tests that use POSIX-only functions (srand48, lrand48, etc.)
+# not available on MinGW/Windows
+if [[ -f libcdi/Makefile ]]; then
+    sed -i 's/ tests$//; s/ tests / /g' libcdi/Makefile
+fi
 make -j"${JOBS}"
 
 echo "[skyborn-cdo] Installing CDO..."

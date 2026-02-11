@@ -63,7 +63,6 @@ jobs:
             SKYBORN_CDO_BUILD=1
             CDO_DEPS_PREFIX=/opt/cdo-deps
             CDO_INSTALL_PREFIX=/opt/cdo-install
-            CDO_SOURCE_DIR={project}/vendor/cdo
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: >
             auditwheel repair -w {dest_dir} {wheel}
           CIBW_TEST_COMMAND: >
@@ -107,7 +106,6 @@ jobs:
             SKYBORN_CDO_BUILD=1
             CDO_DEPS_PREFIX=/opt/cdo-deps
             CDO_INSTALL_PREFIX=/opt/cdo-install
-            CDO_SOURCE_DIR={project}/vendor/cdo
             MACOSX_DEPLOYMENT_TARGET=11.0
           CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
             delocate-wheel --require-archs arm64 -w {dest_dir} {wheel}
