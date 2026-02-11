@@ -8,11 +8,8 @@ This is a backend module for [Skyborn](https://github.com/QianyeSu/Skyborn) — 
 
 This package bundles **CDO 2.5.3** with all required dependencies. For detailed CDO documentation and release information, see:
 
-- **CDO Official Project**: https://code.mpimet.mpg.de/projects/cdo/files
-- **Local Documentation**: See [doc/](https://github.com/QianyeSu/skyborn-cdo/tree/main/doc) for guides:
-  - [CDO User Guide](https://raw.githubusercontent.com/QianyeSu/skyborn-cdo/main/doc/cdo.pdf)
-  - [Reference Card](https://raw.githubusercontent.com/QianyeSu/skyborn-cdo/main/doc/cdo_refcard.pdf)
-  - [Extreme Climate Indices (ECA)](https://raw.githubusercontent.com/QianyeSu/skyborn-cdo/main/doc/cdo_eca.pdf)
+- **CDO Official Project**: https://code.mpimet.mpg.de/projects/cdo
+
 
 ## Installation
 
