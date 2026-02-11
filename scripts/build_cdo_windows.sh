@@ -54,9 +54,9 @@ find . -name config.h.in -exec touch {} +
 
 # Ensure configure and autotools helper scripts are executable (they may be stored as 644 in git)
 find . -name configure -exec chmod +x {} +
-find . -name 'config.sub' -o -name 'config.guess' -o -name 'install-sh' \
+find . \( -name 'config.sub' -o -name 'config.guess' -o -name 'install-sh' \
     -o -name 'missing' -o -name 'compile' -o -name 'depcomp' \
-    -o -name 'ltmain.sh' -o -name 'test-driver' | xargs chmod +x 2>/dev/null || true
+    -o -name 'ltmain.sh' -o -name 'test-driver' \) -exec chmod +x {} +
 
 # If configure doesn't exist, run autoreconf
 if [[ ! -f configure ]]; then
