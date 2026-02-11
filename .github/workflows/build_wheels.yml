@@ -68,9 +68,9 @@ jobs:
             cp /opt/cdo-install/bin/cdo {project}/src/skyborn_cdo/bin/ &&
             chmod +x {project}/src/skyborn_cdo/bin/cdo &&
             mkdir -p {project}/src/skyborn_cdo/lib &&
-            cp -a /opt/cdo-deps/lib/*.so* {project}/src/skyborn_cdo/lib/ 2>/dev/null;
-            cp -a /opt/cdo-deps/lib64/*.so* {project}/src/skyborn_cdo/lib/ 2>/dev/null;
-            cp -a /opt/cdo-install/lib/*.so* {project}/src/skyborn_cdo/lib/ 2>/dev/null;
+            (cp -a /opt/cdo-deps/lib/*.so* {project}/src/skyborn_cdo/lib/ 2>/dev/null || true) &&
+            (cp -a /opt/cdo-deps/lib64/*.so* {project}/src/skyborn_cdo/lib/ 2>/dev/null || true) &&
+            (cp -a /opt/cdo-install/lib/*.so* {project}/src/skyborn_cdo/lib/ 2>/dev/null || true) &&
             mkdir -p {project}/src/skyborn_cdo/share &&
             (cp -r /opt/cdo-deps/share/eccodes {project}/src/skyborn_cdo/share/ 2>/dev/null || true) &&
             (cp -r /opt/cdo-deps/share/proj {project}/src/skyborn_cdo/share/ 2>/dev/null || true) &&
@@ -125,8 +125,8 @@ jobs:
             cp /opt/cdo-install/bin/cdo {project}/src/skyborn_cdo/bin/ &&
             chmod +x {project}/src/skyborn_cdo/bin/cdo &&
             mkdir -p {project}/src/skyborn_cdo/lib &&
-            cp -a /opt/cdo-deps/lib/*.dylib {project}/src/skyborn_cdo/lib/ 2>/dev/null;
-            cp -a /opt/cdo-install/lib/*.dylib {project}/src/skyborn_cdo/lib/ 2>/dev/null;
+            (cp -a /opt/cdo-deps/lib/*.dylib {project}/src/skyborn_cdo/lib/ 2>/dev/null || true) &&
+            (cp -a /opt/cdo-install/lib/*.dylib {project}/src/skyborn_cdo/lib/ 2>/dev/null || true) &&
             mkdir -p {project}/src/skyborn_cdo/share &&
             (cp -r /opt/cdo-deps/share/eccodes {project}/src/skyborn_cdo/share/ 2>/dev/null || true) &&
             (cp -r /opt/cdo-deps/share/proj {project}/src/skyborn_cdo/share/ 2>/dev/null || true) &&
