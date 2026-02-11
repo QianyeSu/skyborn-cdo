@@ -160,6 +160,7 @@ def get_cdo_version(cdo_path: Optional[str] = None) -> str:
             text=True,
             timeout=10,
             env=env,
+            stdin=subprocess.DEVNULL,
         )
         # CDO prints version to stderr
         output = result.stderr.strip() or result.stdout.strip()

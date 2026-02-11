@@ -38,6 +38,26 @@ if [[ -f "${PATCH_FILE}" ]]; then
     patch -p1 --forward < "${PATCH_FILE}" || true
 fi
 
+# Prevent make from trying to regenerate autotools files.
+# The vendored source includes pre-generated configure/Makefile.in/aclocal.m4,
+# but git checkout sets all timestamps to the same time, which can cause make
+# to think the generated files are stale and try to re-run aclocal/autoconf.
+# Touch source files first, then generated files 1s later to ensure correct ordering.
+echo "[skyborn-cdo] Fixing autotools timestamps..."
+find . -name 'configure.ac' -exec touch {} +
+find . -name 'Makefile.am' -exec touch {} +
+sleep 1
+find . -name aclocal.m4 -exec touch {} +
+find . -name configure -exec touch {} +
+find . -name Makefile.in -exec touch {} +
+find . -name config.h.in -exec touch {} +
+
+# Ensure configure and autotools helper scripts are executable (they may be stored as 644 in git)
+find . -name configure -exec chmod +x {} +
+find . \( -name 'config.sub' -o -name 'config.guess' -o -name 'install-sh' \
+    -o -name 'missing' -o -name 'compile' -o -name 'depcomp' \
+    -o -name 'ltmain.sh' -o -name 'test-driver' \) -exec chmod +x {} +
+
 # If configure doesn't exist, run autoreconf
 if [[ ! -f configure ]]; then
     echo "[skyborn-cdo] Running autoreconf..."
@@ -70,6 +90,11 @@ echo "[skyborn-cdo] Configuring CDO for Windows..."
     LIBS="-lz -lm -lws2_32 -lrpcrt4"
 
 echo "[skyborn-cdo] Building CDO..."
+# Disable libcdi tests that use POSIX-only functions (srand48, lrand48, etc.)
+# not available on MinGW/Windows
+if [[ -f libcdi/Makefile ]]; then
+    sed -i 's/ tests$//; s/ tests / /g' libcdi/Makefile
+fi
 make -j"${JOBS}"
 
 echo "[skyborn-cdo] Installing CDO..."

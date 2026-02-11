@@ -19,7 +19,7 @@ PROJECT_DIR="$(dirname "${SCRIPT_DIR}")"
 CDO_SOURCE="${CDO_SOURCE_DIR:-${PROJECT_DIR}/vendor/cdo}"
 DEPS_PREFIX="${CDO_DEPS_PREFIX:-/opt/cdo-deps}"
 INSTALL_PREFIX="${CDO_INSTALL_PREFIX:-/opt/cdo-install}"
-JOBS="${PARALLEL_JOBS:-$(nproc)}"
+JOBS="${PARALLEL_JOBS:-$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 2)}"
 
 echo "============================================"
 echo "Building CDO"
@@ -37,6 +37,26 @@ fi
 
 cd "${CDO_SOURCE}"
 
+# Prevent make from trying to regenerate autotools files.
+# The vendored source includes pre-generated configure/Makefile.in/aclocal.m4,
+# but git checkout sets all timestamps to the same time, which can cause make
+# to think the generated files are stale and try to re-run aclocal/autoconf.
+# Touch source files first, then generated files 1s later to ensure correct ordering.
+echo "[skyborn-cdo] Fixing autotools timestamps..."
+find . -name 'configure.ac' -exec touch {} +
+find . -name 'Makefile.am' -exec touch {} +
+sleep 1
+find . -name aclocal.m4 -exec touch {} +
+find . -name configure -exec touch {} +
+find . -name Makefile.in -exec touch {} +
+find . -name config.h.in -exec touch {} +
+
+# Ensure configure and autotools helper scripts are executable (they may be stored as 644 in git)
+find . -name configure -exec chmod +x {} +
+find . \( -name 'config.sub' -o -name 'config.guess' -o -name 'install-sh' \
+    -o -name 'missing' -o -name 'compile' -o -name 'depcomp' \
+    -o -name 'ltmain.sh' -o -name 'test-driver' \) -exec chmod +x {} +
+
 # If configure doesn't exist, run autoreconf
 if [[ ! -f configure ]]; then
     echo "[skyborn-cdo] Running autoreconf..."
@@ -47,6 +67,13 @@ export PKG_CONFIG_PATH="${DEPS_PREFIX}/lib/pkgconfig:${DEPS_PREFIX}/lib64/pkgcon
 export LD_LIBRARY_PATH="${DEPS_PREFIX}/lib:${DEPS_PREFIX}/lib64:${LD_LIBRARY_PATH:-}"
 
 echo "[skyborn-cdo] Configuring CDO..."
+
+# Build rpath flag: use @loader_path on macOS, $ORIGIN on Linux
+if [[ "$(uname)" == "Darwin" ]]; then
+    RPATH_FLAG="-Wl,-rpath,@loader_path/../lib"
+else
+    RPATH_FLAG='-Wl,-rpath,$ORIGIN/../lib'
+fi
 
 ./configure \
     --prefix="${INSTALL_PREFIX}" \
@@ -61,7 +88,7 @@ echo "[skyborn-cdo] Configuring CDO..."
     --disable-across \
     --enable-cgribex \
     CPPFLAGS="-I${DEPS_PREFIX}/include" \
-    LDFLAGS="-L${DEPS_PREFIX}/lib -L${DEPS_PREFIX}/lib64 -Wl,-rpath,'\$ORIGIN/../lib'" \
+    LDFLAGS="-L${DEPS_PREFIX}/lib -L${DEPS_PREFIX}/lib64 ${RPATH_FLAG}" \
     LIBS="-lz -lm"
 
 echo "[skyborn-cdo] Building CDO..."
@@ -69,6 +96,13 @@ make -j"${JOBS}"
 
 echo "[skyborn-cdo] Installing CDO..."
 make install
+
+# On macOS, add rpath to the deps lib directory so delocate can find dylibs
+if [[ "$(uname)" == "Darwin" && -f "${INSTALL_PREFIX}/bin/cdo" ]]; then
+    echo "[skyborn-cdo] Setting macOS rpaths..."
+    install_name_tool -add_rpath "${DEPS_PREFIX}/lib" "${INSTALL_PREFIX}/bin/cdo" 2>/dev/null || true
+    install_name_tool -add_rpath "@loader_path/../lib" "${INSTALL_PREFIX}/bin/cdo" 2>/dev/null || true
+fi
 
 echo "============================================"
 echo "CDO build complete!"

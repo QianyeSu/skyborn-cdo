@@ -54,17 +54,30 @@ jobs:
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
-          CIBW_BUILD: "cp310-manylinux_x86_64 cp311-manylinux_x86_64 cp312-manylinux_x86_64 cp313-manylinux_x86_64"
+          CIBW_BUILD: "cp39-manylinux_x86_64 cp310-manylinux_x86_64 cp311-manylinux_x86_64 cp312-manylinux_x86_64 cp313-manylinux_x86_64"
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
           CIBW_BEFORE_ALL_LINUX: >
             bash {project}/scripts/build_deps_linux.sh &&
             bash {project}/scripts/build_cdo.sh
           CIBW_ENVIRONMENT_LINUX: >
-            SKYBORN_CDO_BUILD=1
+            SKYBORN_CDO_BUILD=0
             CDO_DEPS_PREFIX=/opt/cdo-deps
             CDO_INSTALL_PREFIX=/opt/cdo-install
-            CDO_SOURCE_DIR={project}/vendor/cdo
+          CIBW_BEFORE_BUILD_LINUX: >
+            mkdir -p {project}/src/skyborn_cdo/bin &&
+            cp /opt/cdo-install/bin/cdo {project}/src/skyborn_cdo/bin/ &&
+            chmod +x {project}/src/skyborn_cdo/bin/cdo &&
+            mkdir -p {project}/src/skyborn_cdo/lib &&
+            (cp -a /opt/cdo-deps/lib/*.so* {project}/src/skyborn_cdo/lib/ 2>/dev/null || true) &&
+            (cp -a /opt/cdo-deps/lib64/*.so* {project}/src/skyborn_cdo/lib/ 2>/dev/null || true) &&
+            (cp -a /opt/cdo-install/lib/*.so* {project}/src/skyborn_cdo/lib/ 2>/dev/null || true) &&
+            mkdir -p {project}/src/skyborn_cdo/share &&
+            (cp -r /opt/cdo-deps/share/eccodes {project}/src/skyborn_cdo/share/ 2>/dev/null || true) &&
+            (cp -r /opt/cdo-deps/share/proj {project}/src/skyborn_cdo/share/ 2>/dev/null || true) &&
+            (cp -r /opt/cdo-deps/share/udunits {project}/src/skyborn_cdo/share/ 2>/dev/null || true) &&
+            ls -la {project}/src/skyborn_cdo/bin/
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: >
+            LD_LIBRARY_PATH=/opt/cdo-deps/lib:/opt/cdo-deps/lib64:/opt/cdo-install/lib
             auditwheel repair -w {dest_dir} {wheel}
           CIBW_TEST_COMMAND: >
             python -c "from skyborn_cdo import Cdo; print(Cdo().version())"
@@ -97,19 +110,31 @@ jobs:
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
-          CIBW_BUILD: "cp310-macosx_arm64 cp311-macosx_arm64 cp312-macosx_arm64 cp313-macosx_arm64"
+          CIBW_BUILD: "cp39-macosx_arm64 cp310-macosx_arm64 cp311-macosx_arm64 cp312-macosx_arm64 cp313-macosx_arm64"
           CIBW_BEFORE_ALL_MACOS: >
             sudo mkdir -p /opt/cdo-deps /opt/cdo-install &&
             sudo chown -R $(whoami) /opt/cdo-deps /opt/cdo-install &&
             bash {project}/scripts/build_deps_macos.sh &&
             bash {project}/scripts/build_cdo.sh
           CIBW_ENVIRONMENT_MACOS: >
-            SKYBORN_CDO_BUILD=1
+            SKYBORN_CDO_BUILD=0
             CDO_DEPS_PREFIX=/opt/cdo-deps
             CDO_INSTALL_PREFIX=/opt/cdo-install
-            CDO_SOURCE_DIR={project}/vendor/cdo
-            MACOSX_DEPLOYMENT_TARGET=11.0
+            MACOSX_DEPLOYMENT_TARGET=14.0
+          CIBW_BEFORE_BUILD_MACOS: >
+            mkdir -p {project}/src/skyborn_cdo/bin &&
+            cp /opt/cdo-install/bin/cdo {project}/src/skyborn_cdo/bin/ &&
+            chmod +x {project}/src/skyborn_cdo/bin/cdo &&
+            mkdir -p {project}/src/skyborn_cdo/lib &&
+            (cp -a /opt/cdo-deps/lib/*.dylib {project}/src/skyborn_cdo/lib/ 2>/dev/null || true) &&
+            (cp -a /opt/cdo-install/lib/*.dylib {project}/src/skyborn_cdo/lib/ 2>/dev/null || true) &&
+            mkdir -p {project}/src/skyborn_cdo/share &&
+            (cp -r /opt/cdo-deps/share/eccodes {project}/src/skyborn_cdo/share/ 2>/dev/null || true) &&
+            (cp -r /opt/cdo-deps/share/proj {project}/src/skyborn_cdo/share/ 2>/dev/null || true) &&
+            (cp -r /opt/cdo-deps/share/udunits {project}/src/skyborn_cdo/share/ 2>/dev/null || true) &&
+            ls -la {project}/src/skyborn_cdo/bin/
           CIBW_REPAIR_WHEEL_COMMAND_MACOS: >
+            DYLD_LIBRARY_PATH=/opt/cdo-deps/lib:/opt/cdo-install/lib
             delocate-wheel --require-archs arm64 -w {dest_dir} {wheel}
           CIBW_TEST_COMMAND: >
             python -c "from skyborn_cdo import Cdo; print(Cdo().version())"
@@ -149,6 +174,7 @@ jobs:
             mingw-w64-x86_64-eccodes
             mingw-w64-x86_64-libtool
             mingw-w64-x86_64-autotools
+            mingw-w64-x86_64-python
             make
             autoconf
             automake
@@ -209,7 +235,7 @@ jobs:
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
-          CIBW_BUILD: "cp310-win_amd64 cp311-win_amd64 cp312-win_amd64 cp313-win_amd64"
+          CIBW_BUILD: "cp39-win_amd64 cp310-win_amd64 cp311-win_amd64 cp312-win_amd64 cp313-win_amd64"
           # CDO binaries already copied into package, skip build step
           CIBW_ENVIRONMENT_WINDOWS: >
             SKYBORN_CDO_BUILD=0
@@ -259,7 +285,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-14, windows-latest]
-        python-version: ["3.10", "3.12"]
+        python-version: ["3.9", "3.10", "3.12"]
 
     steps:
       - uses: actions/setup-python@v5

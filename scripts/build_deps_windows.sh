@@ -70,5 +70,5 @@ echo "============================================"
 echo "All dependencies built successfully!"
 echo "  Installed to: ${PREFIX}"
 echo "============================================"
-ls -la "${PREFIX}/lib/" | head -30 || true
-ls -la "${PREFIX}/bin/" | grep -E '\.(dll|exe)$' | head -20 || true
+(set +o pipefail; ls -la "${PREFIX}/lib/" | head -30) || true
+(set +o pipefail; ls -la "${PREFIX}/bin/" | grep -E '\.(dll|exe)$' | head -20) || true

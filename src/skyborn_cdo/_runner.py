@@ -103,6 +103,7 @@ class CdoRunner:
                 text=True,
                 env=self.env,
                 timeout=timeout,
+                stdin=subprocess.DEVNULL,
             )
         except subprocess.TimeoutExpired as e:
             raise CdoError(
@@ -181,6 +182,7 @@ class CdoRunner:
                 text=True,
                 env=self.env,
                 timeout=timeout,
+                stdin=subprocess.DEVNULL,
             )
         except subprocess.TimeoutExpired as e:
             raise CdoError(
