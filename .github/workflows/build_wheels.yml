@@ -84,7 +84,7 @@ jobs:
             LD_LIBRARY_PATH=/opt/cdo-deps/lib:/opt/cdo-deps/lib64:/opt/cdo-install/lib
             auditwheel repair -w {dest_dir} {wheel}
           CIBW_TEST_COMMAND: >
-            python -c "from skyborn_cdo import Cdo; print(Cdo().version())"
+            python -c "from skyborn_cdo import Cdo; import tempfile, os; cdo = Cdo(); tmpdir = tempfile.mkdtemp(); grb = os.path.join(tmpdir, 'test.grb'); cdo.topo('r10x10', output=grb, options='-f grb'); info = cdo.sinfon(input=grb); assert 'topo' in str(info).lower(), 'GRIB read failed!'; print('✓ GRIB/ecCodes test passed'); print(cdo.version())"
 
       - uses: actions/upload-artifact@v6
         with:
@@ -145,7 +145,7 @@ jobs:
             DYLD_LIBRARY_PATH=/opt/cdo-deps/lib:/opt/cdo-install/lib
             delocate-wheel --require-archs arm64 -w {dest_dir} {wheel}
           CIBW_TEST_COMMAND: >
-            python -c "from skyborn_cdo import Cdo; print(Cdo().version())"
+            python -c "from skyborn_cdo import Cdo; import tempfile, os; cdo = Cdo(); tmpdir = tempfile.mkdtemp(); grb = os.path.join(tmpdir, 'test.grb'); cdo.topo('r10x10', output=grb, options='-f grb'); info = cdo.sinfon(input=grb); assert 'topo' in str(info).lower(), 'GRIB read failed!'; print('✓ GRIB/ecCodes test passed'); print(cdo.version())"
 
       - uses: actions/upload-artifact@v6
         with:
@@ -265,7 +265,7 @@ jobs:
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: >
             delvewheel repair -w {dest_dir} {wheel}
           CIBW_TEST_COMMAND: >
-            python -c "from skyborn_cdo import Cdo; print(Cdo().version())"
+            python -c "from skyborn_cdo import Cdo; import tempfile, os; cdo = Cdo(); tmpdir = tempfile.mkdtemp(); grb = os.path.join(tmpdir, 'test.grb'); cdo.topo('r10x10', output=grb, options='-f grb'); info = cdo.sinfon(input=grb); assert 'topo' in str(info).lower(), 'GRIB read failed!'; print('✓ GRIB/ecCodes test passed'); print(cdo.version())"
 
       - uses: actions/upload-artifact@v6
         with:
