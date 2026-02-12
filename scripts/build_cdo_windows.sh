@@ -69,10 +69,14 @@ export PATH="${DEPS_PREFIX}/bin:${PATH}"
 
 echo "[skyborn-cdo] Configuring CDO for Windows..."
 
+# NOTE: Do NOT use --host=x86_64-w64-mingw32 here!
+# In MSYS2/MinGW64, the compiler is already the MinGW cross-compiler and
+# produces native Windows executables.  Adding --host makes autotools treat
+# this as a cross-compilation, which disables AC_RUN_IFELSE runtime tests.
+# Those skipped tests cause CDO's NetCDF format-selection code path (-f nc*)
+# to be mis-configured, leading to hangs on Windows.
 ./configure \
     --prefix="${INSTALL_PREFIX}" \
-    --build=x86_64-w64-mingw32 \
-    --host=x86_64-w64-mingw32 \
     --with-netcdf="${DEPS_PREFIX}" \
     --with-hdf5="${DEPS_PREFIX}" \
     --with-eccodes="${DEPS_PREFIX}" \
@@ -86,7 +90,7 @@ echo "[skyborn-cdo] Configuring CDO for Windows..."
     --disable-custom-modules \
     --enable-cgribex \
     CFLAGS="-O2 -I${DEPS_PREFIX}/include" \
-    CXXFLAGS="-D_USE_MATH_DEFINES -O2 -std=c++20 -I${DEPS_PREFIX}/include -fopenmp -pthread" \
+    CXXFLAGS="-D_USE_MATH_DEFINES -O2 -std=c++20 -I${DEPS_PREFIX}/include" \
     CPPFLAGS="-I${DEPS_PREFIX}/include" \
     LDFLAGS="-L${DEPS_PREFIX}/lib" \
     LIBS="-lz -lm -lws2_32 -lrpcrt4"
