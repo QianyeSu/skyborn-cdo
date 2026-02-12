@@ -43,6 +43,31 @@ class CdoRunner:
         self.env = env or os.environ.copy()
         self.debug = debug
 
+    @staticmethod
+    def _kill_proc_tree(proc: subprocess.Popen) -> None:
+        """Kill a process and all its children.
+
+        On Windows ``proc.kill()`` only terminates the main process;
+        child processes (e.g. HDF5/NetCDF helpers) can survive and hold
+        file locks or block pipes.  ``taskkill /F /T`` kills the whole
+        process tree.
+        """
+        if os.name == "nt":
+            try:
+                subprocess.run(
+                    ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=10,
+                )
+            except (OSError, subprocess.TimeoutExpired):
+                pass
+        else:
+            try:
+                proc.kill()
+            except OSError:
+                pass
+
     def run(
         self,
         args: List[str],
@@ -114,11 +139,10 @@ class CdoRunner:
             result = subprocess.CompletedProcess(
                 cmd, proc.returncode, stdout, stderr)
         except subprocess.TimeoutExpired:
-            # Ensure the process tree is fully killed and pipes drained
-            try:
-                proc.kill()
-            except OSError:
-                pass
+            # Ensure the process tree is fully killed and pipes drained.
+            # On Windows proc.kill() only kills the main process, not
+            # child processes.  Use taskkill /T to kill the whole tree.
+            self._kill_proc_tree(proc)
             try:
                 proc.communicate(timeout=5)
             except (subprocess.TimeoutExpired, OSError):
@@ -208,11 +232,8 @@ class CdoRunner:
             result = subprocess.CompletedProcess(
                 cmd, proc.returncode, stdout, stderr)
         except subprocess.TimeoutExpired:
-            # Ensure the process tree is fully killed and pipes drained
-            try:
-                proc.kill()
-            except OSError:
-                pass
+            # Ensure the process tree is fully killed and pipes drained.
+            self._kill_proc_tree(proc)
             try:
                 proc.communicate(timeout=5)
             except (subprocess.TimeoutExpired, OSError):

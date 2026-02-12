@@ -143,7 +143,11 @@ def get_bundled_env() -> dict:
 
     # HDF5 file locking can cause hangs on Windows (and some network
     # filesystems on Linux/macOS).  Disable it for the bundled CDO.
-    env.setdefault("HDF5_USE_FILE_LOCKING", "FALSE")
+    # Some HDF5 builds only recognise the string "FALSE", others only "0".
+    env["HDF5_USE_FILE_LOCKING"] = "FALSE"
+    # Prevent HDF5 atexit cleanup that can hang on Windows when the
+    # process is terminated mid-write.
+    env.setdefault("HDF5_NOCLEANUP", "1")
 
     # Library / DLL path — ensure bundled .so/.dylib/.dll can be found
     lib_dir = pkg_dir / "lib"

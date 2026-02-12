@@ -155,7 +155,7 @@ def main():
 
     diagnostics()
 
-    cdo = Cdo(timeout=120)
+    cdo = Cdo(timeout=10)
     tmpdir = tempfile.mkdtemp()
     passed = 0
     failed = 0

@@ -71,6 +71,7 @@ echo "[skyborn-cdo] Configuring CDO for Windows..."
 
 ./configure \
     --prefix="${INSTALL_PREFIX}" \
+    --build=x86_64-w64-mingw32 \
     --host=x86_64-w64-mingw32 \
     --with-netcdf="${DEPS_PREFIX}" \
     --with-hdf5="${DEPS_PREFIX}" \
@@ -79,11 +80,13 @@ echo "[skyborn-cdo] Configuring CDO for Windows..."
     --with-proj="${DEPS_PREFIX}" \
     --with-udunits2="${DEPS_PREFIX}" \
     --with-szlib="${DEPS_PREFIX}" \
+    --with-threads=yes \
     --disable-fortran \
     --disable-across \
     --disable-custom-modules \
     --enable-cgribex \
-    CXXFLAGS="-D_USE_MATH_DEFINES -O2 -std=c++20 -I${DEPS_PREFIX}/include" \
+    CFLAGS="-O2 -I${DEPS_PREFIX}/include" \
+    CXXFLAGS="-D_USE_MATH_DEFINES -O2 -std=c++20 -I${DEPS_PREFIX}/include -fopenmp -pthread" \
     CPPFLAGS="-I${DEPS_PREFIX}/include" \
     LDFLAGS="-L${DEPS_PREFIX}/lib" \
     LIBS="-lz -lm -lws2_32 -lrpcrt4"
