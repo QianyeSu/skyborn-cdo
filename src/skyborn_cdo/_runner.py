@@ -114,14 +114,14 @@ class CdoRunner:
             result = subprocess.CompletedProcess(
                 cmd, proc.returncode, stdout, stderr)
         except subprocess.TimeoutExpired:
-            # Ensure the process tree is fully killed
+            # Ensure the process tree is fully killed and pipes drained
             try:
                 proc.kill()
             except OSError:
                 pass
             try:
-                proc.wait(timeout=5)
-            except subprocess.TimeoutExpired:
+                proc.communicate(timeout=5)
+            except (subprocess.TimeoutExpired, OSError):
                 pass
             raise CdoError(
                 f"CDO command timed out after {timeout}s: {' '.join(cmd)}",
@@ -208,13 +208,14 @@ class CdoRunner:
             result = subprocess.CompletedProcess(
                 cmd, proc.returncode, stdout, stderr)
         except subprocess.TimeoutExpired:
+            # Ensure the process tree is fully killed and pipes drained
             try:
                 proc.kill()
             except OSError:
                 pass
             try:
-                proc.wait(timeout=5)
-            except subprocess.TimeoutExpired:
+                proc.communicate(timeout=5)
+            except (subprocess.TimeoutExpired, OSError):
                 pass
             raise CdoError(
                 f"CDO command timed out after {timeout}s: {cmd_string}",
