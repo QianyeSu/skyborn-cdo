@@ -91,7 +91,7 @@ echo "[skyborn-cdo] Configuring CDO for Windows..."
     --enable-cgribex \
     CFLAGS="-O2 -I${DEPS_PREFIX}/include" \
     CXXFLAGS="-D_USE_MATH_DEFINES -O2 -std=c++20 -I${DEPS_PREFIX}/include" \
-    CPPFLAGS="-I${DEPS_PREFIX}/include -D_POSIX_C_SOURCE=200112L" \
+    CPPFLAGS="-I${DEPS_PREFIX}/include" \
     LDFLAGS="-L${DEPS_PREFIX}/lib" \
     LIBS="-lz -lm -lws2_32 -lrpcrt4"
 

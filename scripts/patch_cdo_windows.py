@@ -25,6 +25,25 @@ class WindowsPatcher:
         self.cdo_src = Path(cdo_src_dir).resolve()
         self.backup_dir = self.cdo_src / ".patch_backup"
 
+    def _backup_map_path(self) -> Path:
+        return self.backup_dir / "_path_map.txt"
+
+    def _save_backup_mapping(self, rel_path: str, backup_name: str):
+        """Append a rel_path -> backup_name mapping to the map file"""
+        with open(self._backup_map_path(), 'a', encoding='utf-8') as f:
+            f.write(f"{backup_name}\t{rel_path}\n")
+
+    def _load_backup_mappings(self) -> dict:
+        """Load backup_name -> rel_path mappings from the map file"""
+        mappings = {}
+        map_file = self._backup_map_path()
+        if map_file.exists():
+            for line in map_file.read_text(encoding='utf-8').splitlines():
+                if '\t' in line:
+                    backup_name, rel_path = line.split('\t', 1)
+                    mappings[backup_name] = rel_path
+        return mappings
+
     def patch_file(self, rel_path: str, patches: list, dry_run: bool = False) -> Tuple[bool, int]:
         """Apply patches to a single file. Returns (success, count)"""
         file_path = self.cdo_src / rel_path
@@ -67,10 +86,11 @@ class WindowsPatcher:
         # Write modifications
         if content != original and not dry_run:
             # Backup original file
-            backup_path = self.backup_dir / \
-                rel_path.replace('/', '_').replace('\\', '_')
+            backup_name = rel_path.replace('/', '__').replace('\\', '__')
+            backup_path = self.backup_dir / backup_name
             backup_path.parent.mkdir(parents=True, exist_ok=True)
             backup_path.write_text(original, encoding='utf-8', newline='\n')
+            self._save_backup_mapping(rel_path, backup_name)
 
             # Write modified content
             file_path.write_text(content, encoding='utf-8', newline='\n')
@@ -130,6 +150,15 @@ class WindowsPatcher:
                  r'#ifndef _WIN32\n\1\n#endif'),
             ]),
 
+            # --- libcdi/configure: bypass POSIX.1-2001 check ---
+            # MinGW does not define _POSIX_VERSION in <unistd.h>, but libcdi
+            # is still buildable.  Force the check result to "yes".
+            ("libcdi/configure", [
+                ("Bypass POSIX.1-2001 conformance check",
+                 "e) acx_cv_cc_posix_support2001=no ;;",
+                 "e) acx_cv_cc_posix_support2001=yes ;;"),
+            ]),
+
             # --- Other files: guard unistd.h ---
             *[(f, [("Guard unistd.h",
                    re.compile(r'^(#include\s+<unistd\.h>)$', re.MULTILINE),
@@ -151,7 +180,7 @@ class WindowsPatcher:
                 total_files += 1
                 total_patches += count
             print()
-        
+
         # Summary
         mode = "Verify mode - no files modified" if dry_run else f"{total_files} files modified"
         print(f"{'='*70}")
@@ -168,12 +197,16 @@ class WindowsPatcher:
 
         print(f"Restoring from backup: {self.backup_dir}\n")
 
+        # Load the mapping file to get correct original paths
+        mappings = self._load_backup_mappings()
+
         restored = 0
         for backup_file in self.backup_dir.iterdir():
-            if backup_file.is_file():
-                # Convert backup filename back to original path
-                rel_path = backup_file.name.replace(
-                    '_', '/', 2)  # src_cdo.cc -> src/cdo.cc
+            if backup_file.is_file() and backup_file.name != "_path_map.txt":
+                # Use mapping to recover original path; fall back to double-underscore split
+                rel_path = mappings.get(backup_file.name)
+                if not rel_path:
+                    rel_path = backup_file.name.replace('__', '/')
                 original_file = self.cdo_src / rel_path
 
                 try:
