@@ -160,7 +160,6 @@ class WindowsPatcher:
             # MinGW's unistd.h includes "process.h" (for Windows process mgmt),
             # which gets resolved to CDO's src/process.h due to -I../../../../src.
             # CDO's process.h is C++ only. Guard it to avoid pulling in <vector>.
-            # Also, pthread_t doesn't exist on MinGW - use HANDLE on Windows.
             ("src/process.h", [
                 ("Guard C++ content from C compiler",
                  re.compile(
@@ -170,31 +169,9 @@ class WindowsPatcher:
                  ),
                  r'\1\n#ifdef __cplusplus\n'),
 
-                ("Define pthread_t as HANDLE on Windows",
-                 re.compile(
-                     r'(#ifdef __cplusplus\s*\n)',
-                     re.MULTILINE
-                 ),
-                 r'\1\n#ifdef _WIN32\n'
-                 r'#include <windows.h>\n'
-                 r'typedef HANDLE pthread_t;\n'
-                 r'#else\n'
-                 r'#include <pthread.h>\n'
-                 r'#endif\n'),
-
                 ("Close C++ guard at end",
                  "#endif /* PROCESS_H */",
                  "#endif /* __cplusplus */\n#endif /* PROCESS_H */"),
-            ]),
-
-            # --- src/varray.h: add missing <iostream> for std::cerr ---
-            ("src/varray.h", [
-                ("Add iostream header for std::cerr",
-                 re.compile(
-                     r'(#include\s+"compare\.h"\s*\n)',
-                     re.MULTILINE
-                 ),
-                 r'\1#include <iostream>\n'),
             ]),
 
             # --- src/field.h: add missing <stdexcept> for std::runtime_error ---
