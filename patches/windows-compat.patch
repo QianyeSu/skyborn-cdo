@@ -16,8 +16,7 @@
  #include <cstring>
  #include <cstdlib>
  #include <csignal>
-@@ -131,14 +139,27 @@
- 
+@@ -132,6 +140,18 @@ cdo_usage(std::FILE *target)
  static void
  cdo_init_is_tty()
  {
@@ -36,7 +35,7 @@
    struct stat statbuf;
    fstat(0, &statbuf);
    if (S_ISCHR(statbuf.st_mode)) { cdo::stdinIsTerminal = true; }
-   fstat(1, &statbuf);
+@@ -139,6 +159,7 @@ cdo_init_is_tty()
    if (S_ISCHR(statbuf.st_mode)) { cdo::stdoutIsTerminal = true; }
    fstat(2, &statbuf);
    if (S_ISCHR(statbuf.st_mode)) { cdo::stderrIsTerminal = true; }
@@ -44,72 +43,24 @@
  }
  
  static void
-@@ -498,6 +519,13 @@
+@@ -498,6 +519,13 @@ main(int argc, char *argv[])
      totalTimer.start();
      g_processManager.run_processes();
      totalTimer.stop();
 +
 +    // Flush stdout before cleanup -- on Windows with PIPE-connected stdout,
 +    // cleanup may hang (e.g. atexit handlers in HDF5/NetCDF libraries).
-+    // Flushing here ensures all operator output (showname, sinfo, etc.)
++    // Flushing here ensures all operator output (showname, sinfo, etc,)
 +    // reaches the pipe before any potential hang.
 +    fflush(stdout);
 +
      g_processManager.clear_processes();
  
      if (Options::Timer) timer_report(allTimers);
---- a/src/merge_axis.cc
-+++ b/src/merge_axis.cc
-@@ -8,5 +8,7 @@
- #include <cdi.h>
- 
-+#ifndef _WIN32
- #include <unistd.h>
-+#endif
- 
- #include "process_int.h"
---- a/src/griddes.cc
-+++ b/src/griddes.cc
-@@ -8,5 +8,7 @@
- #include <sys/stat.h>
- #include <fcntl.h>
-+#ifndef _WIN32
- #include <unistd.h>
-+#endif
- 
- #include <cdi.h>
---- a/src/dcw_reader.cc
-+++ b/src/dcw_reader.cc
-@@ -16,5 +16,7 @@
- #include <cstdlib>
- #include <cstring>
-+#ifndef _WIN32
- #include <unistd.h>
-+#endif
- 
- #include <algorithm>  // sort
---- a/src/operators/CMOR.cc
-+++ b/src/operators/CMOR.cc
-@@ -62,4 +62,6 @@
- 
- #include <cassert>
-+#ifndef _WIN32
- #include <unistd.h>
-+#endif
- #include <netcdf.h>
---- a/src/cdo_zaxis.cc
-+++ b/src/cdo_zaxis.cc
-@@ -9,5 +9,7 @@
- #include <cstdlib>
- #include <fcntl.h>
-+#ifndef _WIN32
- #include <unistd.h>
-+#endif
- 
- #include <cdi.h>
 --- a/src/cdo_getopt.cc
 +++ b/src/cdo_getopt.cc
-@@ -17,6 +17,13 @@
+@@ -16,9 +16,16 @@
+ 
  #define CLIOP_DBG false
  
 +#ifdef _WIN32
@@ -123,16 +74,78 @@
  #include <unistd.h>
 +#endif
  #include <algorithm>
+ 
+ std::map<std::string, std::unique_ptr<CliOption>> CLIOptions::optionMap;
+--- a/src/cdo_zaxis.cc
++++ b/src/cdo_zaxis.cc
+@@ -8,7 +8,9 @@
+ #include <cstring>
+ #include <cstdlib>
+ #include <fcntl.h>
++#ifndef _WIN32
+ #include <unistd.h>
++#endif
+ 
+ #include <cdi.h>
+ 
+--- a/src/dcw_reader.cc
++++ b/src/dcw_reader.cc
+@@ -15,7 +15,9 @@
+ #include <cstdio>
+ #include <cstdlib>
+ #include <cstring>
++#ifndef _WIN32
+ #include <unistd.h>
++#endif
+ 
+ #include <algorithm>  // sort
+ 
 --- a/src/expr_lex.cc
 +++ b/src/expr_lex.cc
-@@ -557,7 +557,9 @@
- #ifndef YY_NO_UNISTD_H
- /* Special case for "unistd.h", since it is non-ANSI. We include it way
+@@ -559,8 +559,10 @@ goto find_rule; \
   * down here because we want the user's section 1 to have been scanned first.
   * The user has a chance to override it with an option.
   */
 +#ifndef _WIN32
  #include <unistd.h>
-+#endif
  #endif
-
++#endif
+ 
+ #ifndef YY_EXTRA_TYPE
+ #define YY_EXTRA_TYPE void *
+--- a/src/griddes.cc
++++ b/src/griddes.cc
+@@ -7,7 +7,9 @@
+ 
+ #include <sys/stat.h>
+ #include <fcntl.h>
++#ifndef _WIN32
+ #include <unistd.h>
++#endif
+ 
+ #include <cdi.h>
+ 
+--- a/src/merge_axis.cc
++++ b/src/merge_axis.cc
+@@ -7,7 +7,9 @@
+ 
+ #include <cdi.h>
+ 
++#ifndef _WIN32
+ #include <unistd.h>
++#endif
+ 
+ #include "process_int.h"
+ #include "varray.h"
+--- a/src/operators/CMOR.cc
++++ b/src/operators/CMOR.cc
+@@ -61,7 +61,9 @@ public:
+ #else  //---------------------------------------------------------------------------
+ 
+ #include <cassert>
++#ifndef _WIN32
+ #include <unistd.h>
++#endif
+ #include <netcdf.h>
+ 
+ extern "C"

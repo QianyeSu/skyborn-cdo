@@ -21,6 +21,14 @@ mkdir -p "$BUILD_DIR" "$PREFIX"
 
 cd "$CDO_SRC"
 
+# Apply Windows compatibility patch (same as CI build_cdo_windows.sh)
+PATCH_FILE="${PROJECT_DIR}/patches/windows-compat.patch"
+if [[ -f "${PATCH_FILE}" ]]; then
+    echo ""
+    echo "=== Applying Windows compatibility patch ==="
+    patch -p1 --forward < "${PATCH_FILE}" || true
+fi
+
 # Check if configure exists (pre-generated)
 if [ ! -f configure ]; then
     echo "Running autoreconf..."

@@ -273,8 +273,8 @@ class Cdo:
             "showname", "showlevel", "showltype", "showunit",
             "showstdname", "showformat", "showgrid", "showgriddes",
             "showmon", "showyear", "showvar", "showparam",
-            "ncode", "ndate", "ngridpoints", "nlevel", "nmon", "ntime",
-            "nvar", "nyear", "griddes", "zaxisdes", "pardes", "vct",
+            "ncode", "ndate", "ngrids", "ngridpoints", "nlevel", "nmon",
+            "ntime", "nvar", "nyear", "griddes", "zaxisdes", "pardes", "vct",
             "showattribute", "showatts", "showattsglob",
             "npar", "gradsdes", "filedes", "partab",
         }

@@ -611,8 +611,8 @@ def main():
     print("\n=== 27. Trend / Detrend ===")
     trend_a = os.path.join(tmpdir, "trend_a.nc")
     trend_b = os.path.join(tmpdir, "trend_b.nc")
-    run_test("trend", lambda: cdo.trend(input=monthly_nc,
-             output=f"{trend_a} {trend_b}") or (assert_file(trend_a), assert_file(trend_b)))
+    run_test("trend", lambda: cdo(
+             f"cdo trend {monthly_nc} {trend_a} {trend_b}") or (assert_file(trend_a), assert_file(trend_b)))
 
     detrend_nc = os.path.join(tmpdir, "detrend.nc")
     run_test("detrend", lambda: cdo.detrend(input=monthly_nc,
