@@ -163,10 +163,13 @@ def main():
 
     def run_test(name, fn):
         nonlocal passed, failed
+        t0 = time.time()
         try:
             fn()
             passed += 1
-            print(f"  [PASS] {name}")
+            dt = time.time() - t0
+            slow = f" ({dt:.1f}s)" if dt > 2.0 else ""
+            print(f"  [PASS] {name}{slow}")
         except Exception as e:
             print(f"  [FAIL] {name} -- {e}", file=sys.stderr)
             failed += 1
@@ -457,7 +460,8 @@ def main():
                     f"got '{new_raw}' (original var: '{vname}')")
         except Exception as e:
             if "timed out" in str(e).lower():
-                print(f"    (showname verification skipped — CDO exit hang: {e})")
+                print(
+                    f"    (showname verification skipped — CDO exit hang: {e})")
             else:
                 raise
     run_test("chname", _chname_test)

@@ -8,6 +8,7 @@ import shlex
 import subprocess
 import tempfile
 import threading
+import time
 from pathlib import Path
 from typing import List, Optional, Union
 
@@ -59,17 +60,21 @@ class CdoRunner:
         On Windows ``proc.kill()`` only terminates the main process;
         child processes (e.g. HDF5/NetCDF helpers) can survive and hold
         file locks or block pipes.  ``taskkill /F /T`` kills the whole
-        process tree.
+        process tree but can be slow (~5 s).  We do proc.kill() first
+        for speed, then background taskkill as cleanup.
         """
         if os.name == "nt":
             try:
-                subprocess.run(
+                proc.kill()
+            except OSError:
+                pass
+            try:
+                subprocess.Popen(
                     ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
-                    timeout=10,
                 )
-            except (OSError, subprocess.TimeoutExpired):
+            except OSError:
                 pass
         else:
             try:
@@ -187,21 +192,72 @@ class CdoRunner:
         tout.start()
         terr.start()
 
+        # --- Polling loop -------------------------------------------
+        #
+        # Instead of blocking on proc.wait(timeout) for the full
+        # duration, we poll every _POLL seconds.  Most CDO operations
+        # finish in < 0.1 s; the exit-hang means the *process* stays
+        # alive but the work is done.  By checking the output file (or
+        # captured stdout for info operators) on every tick we can
+        # detect completion almost immediately and kill the zombie
+        # process without wasting the full timeout.
+        #
+        _POLL = 0.3            # seconds between polls
+        _GRACE_AFTER = 0.5     # extra wait after output detected
+        _elapsed = 0.0
+        _deadline = timeout if timeout else 0
+        _detected_at = None    # timestamp when completion first seen
         hung = False
-        try:
-            proc.wait(timeout=timeout)
-        except subprocess.TimeoutExpired:
-            hung = True
-            self._kill_proc_tree(proc)
+
+        while True:
             try:
-                proc.wait(timeout=5)
+                proc.wait(timeout=_POLL)
+                break  # process exited normally
             except subprocess.TimeoutExpired:
-                pass
+                _elapsed += _POLL
+
+            # -- Quick-check: did CDO already finish its work? --------
+            if _detected_at is None:
+                _done = False
+                # 1) output file exists with non-zero size
+                if output_file:
+                    try:
+                        _done = (os.path.isfile(output_file)
+                                 and os.path.getsize(output_file) > 0)
+                    except OSError:
+                        pass
+                # 2) stdout captured (info operators like showname)
+                if not _done and stdout_chunks:
+                    _done = True
+                if _done:
+                    _detected_at = _elapsed
+
+            # If completion was detected, allow a short grace period
+            # for the process to exit cleanly, then kill it.
+            if _detected_at is not None:
+                if (_elapsed - _detected_at) >= _GRACE_AFTER:
+                    hung = True
+                    self._kill_proc_tree(proc)
+                    try:
+                        proc.wait(timeout=2)
+                    except subprocess.TimeoutExpired:
+                        pass
+                    break
+
+            # Hard timeout — no completion detected
+            if _deadline and _elapsed >= _deadline:
+                hung = True
+                self._kill_proc_tree(proc)
+                try:
+                    proc.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    pass
+                break
 
         # After the process is dead the pipes will reach EOF and the
         # reader threads will finish.
-        tout.join(timeout=5)
-        terr.join(timeout=5)
+        tout.join(timeout=2)
+        terr.join(timeout=2)
 
         stdout = b"".join(stdout_chunks).decode("utf-8", errors="replace")
         stderr = b"".join(stderr_chunks).decode("utf-8", errors="replace")
@@ -209,27 +265,31 @@ class CdoRunner:
         if hung:
             # CDO may have finished processing but hangs during exit
             # cleanup (known issue with certain MinGW/HDF5 builds).
-            # With the fflush(stdout) fix in cdo.cc, stdout data should
-            # be available.  We also check stderr and the output file
-            # as fallbacks.
-            completed = (_CDO_DONE_RE.search(stdout)
-                         or _CDO_DONE_RE.search(stderr))
-            if not completed and output_file:
-                try:
-                    completed = os.path.isfile(output_file) and \
-                                os.path.getsize(output_file) > 0
-                except OSError:
-                    completed = False
-            if not completed and stdout.strip():
-                # Info operators (showname, sinfo, …) produce stdout
-                # but no output file.  If we captured any stdout the
-                # operator finished its work.
+            #
+            # Two scenarios reach here:
+            #   a) The polling loop detected completion (output file or
+            #      stdout data) and killed the zombie → _detected_at
+            #      is set → definitely completed.
+            #   b) Hard timeout with no early detection → check
+            #      stdout/stderr/output-file one final time.
+            if _detected_at is not None:
                 completed = True
+            else:
+                completed = (_CDO_DONE_RE.search(stdout)
+                             or _CDO_DONE_RE.search(stderr))
+                if not completed and output_file:
+                    try:
+                        completed = os.path.isfile(output_file) and \
+                            os.path.getsize(output_file) > 0
+                    except OSError:
+                        completed = False
+                if not completed and stdout.strip():
+                    completed = True
 
             if completed:
                 if self.debug:
                     print("[skyborn-cdo] Process hung at exit after successful "
-                          "completion – killed.")
+                          f"completion – killed ({_elapsed:.1f}s).")
                 return subprocess.CompletedProcess(cmd, 0, stdout, stderr)
 
             raise CdoError(
