@@ -53,18 +53,18 @@ if ! grep -q 'std::to_string' "${CDO_SOURCE}/src/mpmo_color.h"; then
 fi
 echo "[skyborn-cdo] Patches verified OK"
 
-# Create GCC 15 workaround header: ensure std::locale is complete
-# before <sstream> templates are processed.
-# GCC 15.2.0 has a bug where sstream's basic_stringstream constructor
-# fails because basic_ios::init() is not visible when std::locale is
-# incomplete (only forward-declared via <ios>).
+# Create GCC 15 workaround header: ensure pthread and locale are complete
+# before any standard library template processing.
+# GCC 15.2.0 issues:
+#   1. <sstream> needs std::locale to be complete (not just forward-declared)
+#   2. <mutex> (pulled by <locale>) needs pthread functions via gthr-posix.h
+# Solution: Force-include pthread.h AND locale at the start of every .cc file.
 GCC15_FIX="${CDO_SOURCE}/src/gcc15_fix.h"
 cat > "${GCC15_FIX}" << 'FIXEOF'
-/* GCC 15 workaround: ensure std::locale is fully defined before
-   any <sstream> header is processed. Without this, GCC 15's
-   template body checking causes false errors in libstdc++. */
+/* GCC 15 + MinGW workaround: include pthread and locale FIRST */
 #ifdef __cplusplus
-#include <locale>
+#include <pthread.h>  /* Must be first: gthr-posix.h depends on this */
+#include <locale>     /* Ensure complete before <sstream> processing */
 #endif
 FIXEOF
 echo "[skyborn-cdo] Created GCC 15 workaround header: ${GCC15_FIX}"
