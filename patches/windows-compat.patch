@@ -16,7 +16,7 @@
  #include <cstring>
  #include <cstdlib>
  #include <csignal>
-@@ -120,12 +128,24 @@
+@@ -120,11 +128,24 @@
  static void
  cdo_init_is_tty()
  {
@@ -41,63 +41,73 @@
    if (S_ISCHR(statbuf.st_mode)) { cdo::stderrIsTerminal = true; }
 +#endif
  }
+@@ -474,6 +495,13 @@
+     totalTimer.start();
+     g_processManager.run_processes();
+     totalTimer.stop();
++
++    // Flush stdout before cleanup -- on Windows with PIPE-connected stdout,
++    // cleanup may hang (e.g. atexit handlers in HDF5/NetCDF libraries).
++    // Flushing here ensures all operator output (showname, sinfo, etc.)
++    // reaches the pipe before any potential hang.
++    fflush(stdout);
++
+     g_processManager.clear_processes();
  
+     if (Options::Timer) timer_report(allTimers);
 --- a/src/merge_axis.cc
 +++ b/src/merge_axis.cc
-@@ -7,7 +7,9 @@
- #include "config.h"
- #endif
+@@ -8,5 +8,7 @@
+ #include <cdi.h>
  
 +#ifndef _WIN32
  #include <unistd.h>
 +#endif
  
+ #include "process_int.h"
 --- a/src/griddes.cc
 +++ b/src/griddes.cc
-@@ -7,7 +7,9 @@
- #include "config.h"
- #endif
- 
+@@ -8,5 +8,7 @@
+ #include <sys/stat.h>
+ #include <fcntl.h>
 +#ifndef _WIN32
  #include <unistd.h>
 +#endif
+ #include <climits>
  
 --- a/src/dcw_reader.cc
 +++ b/src/dcw_reader.cc
-@@ -15,7 +15,9 @@
- #include "config.h"
- #endif
- 
+@@ -16,4 +16,6 @@
+ #include <cstdlib>
+ #include <cstring>
 +#ifndef _WIN32
  #include <unistd.h>
 +#endif
  
 --- a/src/CMOR.cc
 +++ b/src/CMOR.cc
-@@ -60,7 +60,9 @@
- #include "config.h"
- #endif
+@@ -61,5 +61,7 @@
  
+ #include <cassert>
 +#ifndef _WIN32
  #include <unistd.h>
 +#endif
+ #include <netcdf.h>
  
 --- a/src/cdo_zaxis.cc
 +++ b/src/cdo_zaxis.cc
-@@ -8,7 +8,9 @@
- #include "config.h"
- #endif
- 
+@@ -9,4 +9,6 @@
+ #include <cstdlib>
+ #include <fcntl.h>
 +#ifndef _WIN32
  #include <unistd.h>
 +#endif
  
 --- a/src/cdo_getopt.cc
 +++ b/src/cdo_getopt.cc
-@@ -19,7 +19,11 @@
- #include "config.h"
- #endif
- 
+@@ -24,4 +24,8 @@
+ #include <sys/stat.h>
+ #include <stdio.h>
 +#ifdef _WIN32
 +#include <io.h>
 +#else
@@ -106,17 +116,15 @@
  
 --- a/src/expr_lex.cc
 +++ b/src/expr_lex.cc
-@@ -559,7 +559,9 @@
- #include <string.h>
- #include <errno.h>
- #include <stdlib.h>
+@@ -556,9 +556,11 @@
+ 
+ #ifndef YY_NO_UNISTD_H
+ /* Special case for "unistd.h", since it is non-ANSI. We include it way
+  * down here because we want the user's section 1 to have been scanned first.
+  * The user has a chance to override it with an option.
+  */
 +#ifndef _WIN32
  #include <unistd.h>
 +#endif
+ #endif
  
---- a/src/cdo_settings.cc
-+++ b/src/cdo_settings.cc
-@@ -0,0 +1,10 @@
-+// Windows: provide empty set_stacksize/set_coresize if getrlimit unavailable
-+// This is handled by existing #ifdef HAVE_GETRLIMIT guards in the source.
-+// No additional patch needed as configure will not define HAVE_GETRLIMIT on Windows.

@@ -475,13 +475,6 @@ main(int argc, char *argv[])
     totalTimer.start();
     g_processManager.run_processes();
     totalTimer.stop();
-
-    // Flush stdout before cleanup — on Windows with PIPE-connected stdout,
-    // cleanup may hang (e.g. atexit handlers in HDF5/NetCDF libraries).
-    // Flushing here ensures all operator output (showname, sinfo, etc.)
-    // reaches the pipe before any potential hang.
-    fflush(stdout);
-
     g_processManager.clear_processes();
 
     if (Options::Timer) timer_report(allTimers);
