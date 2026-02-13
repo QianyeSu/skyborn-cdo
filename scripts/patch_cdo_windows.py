@@ -159,6 +159,42 @@ class WindowsPatcher:
                  "e) acx_cv_cc_posix_support2001=yes ;;"),
             ]),
 
+            # --- libcdi/src/input_file.c: implement pread for Windows ---
+            # MinGW doesn't have pread(). The existing "#define pread read" is
+            # incorrect (wrong argument count). Replace with proper implementation.
+            ("libcdi/src/input_file.c", [
+                ("Implement pread for Windows",
+                 re.compile(
+                     r'// On Windows, define ssize_t and pread manually\s*\n'
+                     r'#ifdef _WIN32\s*\n'
+                     r'#define ssize_t __int64\s*\n'
+                     r'#define pread read\s*\n'
+                     r'#include <io\.h>\s*\n'
+                     r'#else\s*\n'
+                     r'#include <unistd\.h>\s*\n'
+                     r'#endif',
+                     re.MULTILINE
+                 ),
+                 '''// On Windows, implement pread using _lseeki64 + _read
+#ifdef _WIN32
+#include <io.h>
+typedef __int64 ssize_t;
+typedef __int64 off_t;
+
+static ssize_t pread_windows(int fd, void *buf, size_t count, off_t offset) {
+    off_t current = _lseeki64(fd, 0, SEEK_CUR);
+    if (current == -1) return -1;
+    if (_lseeki64(fd, offset, SEEK_SET) == -1) return -1;
+    int result = _read(fd, buf, (unsigned int)count);
+    _lseeki64(fd, current, SEEK_SET);
+    return result;
+}
+#define pread pread_windows
+#else
+#include <unistd.h>
+#endif'''),
+            ]),
+
             # --- Other files: guard unistd.h ---
             *[(f, [("Guard unistd.h",
                    re.compile(r'^(#include\s+<unistd\.h>)$', re.MULTILINE),
