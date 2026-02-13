@@ -160,6 +160,7 @@ class WindowsPatcher:
             # MinGW's unistd.h includes "process.h" (for Windows process mgmt),
             # which gets resolved to CDO's src/process.h due to -I../../../../src.
             # CDO's process.h is C++ only. Guard it to avoid pulling in <vector>.
+            # Also add pthread.h include for pthread_t type used in the class.
             ("src/process.h", [
                 ("Guard C++ content from C compiler",
                  re.compile(
@@ -168,6 +169,13 @@ class WindowsPatcher:
                      re.MULTILINE
                  ),
                  r'\1\n#ifdef __cplusplus\n'),
+
+                ("Add pthread.h for pthread_t type",
+                 re.compile(
+                     r'(#include <string>\s*\n)',
+                     re.MULTILINE
+                 ),
+                 r'\1#include <pthread.h>\n'),
 
                 ("Close C++ guard at end",
                  "#endif /* PROCESS_H */",
