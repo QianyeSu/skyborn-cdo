@@ -70,3 +70,12 @@ ls -la "$PREFIX/bin/"
 echo ""
 echo "=== Testing CDO ==="
 "$PREFIX/bin/cdo.exe" --version || true
+
+# Restore vendor directory to clean state (undo patch modifications)
+cd "$CDO_SRC"
+if [[ -f "${PATCH_FILE}" ]]; then
+    echo ""
+    echo "=== Restoring vendor directory (reverting patch) ==="
+    patch -p1 -R < "${PATCH_FILE}" || true
+    echo "Vendor directory restored to original state"
+fi

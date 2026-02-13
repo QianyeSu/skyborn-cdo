@@ -157,6 +157,7 @@ def diagnostics():
 # ======================================================================
 
 def main():
+    import shutil
     from skyborn_cdo import Cdo
     from skyborn_cdo._runner import CdoError
 
@@ -708,6 +709,11 @@ def main():
     print(f"Results: {passed}/{total} passed, {failed} failed")
     print(f"Time: {elapsed:.1f}s")
     print(f"{'='*60}")
+
+    # Clean up temporary directory and all test files
+    if os.path.exists(tmpdir):
+        print(f"\nCleaning up temporary files: {tmpdir}")
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
     if failed > 0:
         sys.exit(1)
