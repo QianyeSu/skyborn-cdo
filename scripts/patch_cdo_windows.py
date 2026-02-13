@@ -195,6 +195,33 @@ static ssize_t pread_windows(int fd, void *buf, size_t count, off_t offset) {
 #endif'''),
             ]),
 
+            # --- libcdi/src/gribapi_utilities.c: implement setenv/unsetenv for Windows ---
+            # MinGW doesn't have POSIX setenv()/unsetenv(). Implement using _putenv_s().
+            ("libcdi/src/gribapi_utilities.c", [
+                ("Implement setenv/unsetenv for Windows",
+                 re.compile(
+                     r'(#include <time\.h>)\s*\n'
+                     r'\s*\n'
+                     r'(#define FAIL_ON_GRIB_ERROR)',
+                     re.MULTILINE
+                 ),
+                 r'''\1
+
+// Windows compatibility: implement setenv/unsetenv
+#ifdef _WIN32
+#include <stdlib.h>
+static int setenv(const char *name, const char *value, int overwrite) {
+    if (!overwrite && getenv(name)) return 0;
+    return _putenv_s(name, value);
+}
+static int unsetenv(const char *name) {
+    return _putenv_s(name, "");
+}
+#endif
+
+\2'''),
+            ]),
+
             # --- Other files: guard unistd.h ---
             *[(f, [("Guard unistd.h",
                    re.compile(r'^(#include\s+<unistd\.h>)$', re.MULTILINE),
