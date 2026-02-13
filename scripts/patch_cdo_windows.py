@@ -150,6 +150,24 @@ class WindowsPatcher:
                  r'#ifndef _WIN32\n\1\n#endif'),
             ]),
 
+            # --- src/process.h: prevent C files from including C++ content ---
+            # MinGW's unistd.h includes "process.h" (for Windows process mgmt),
+            # which gets resolved to CDO's src/process.h due to -I../../../../src.
+            # CDO's process.h is C++ only. Guard it to avoid pulling in <vector>.
+            ("src/process.h", [
+                ("Guard C++ content from C compiler",
+                 re.compile(
+                     r'(#ifndef PROCESS_H\s*\n'
+                     r'#define PROCESS_H\s*\n)',
+                     re.MULTILINE
+                 ),
+                 r'\1\n#ifdef __cplusplus\n'),
+
+                ("Close C++ guard at end",
+                 "#endif /* PROCESS_H */",
+                 "#endif /* __cplusplus */\n#endif /* PROCESS_H */"),
+            ]),
+
             # --- libcdi/configure: bypass POSIX.1-2001 check ---
             # MinGW does not define _POSIX_VERSION in <unistd.h>, but libcdi
             # is still buildable.  Force the check result to "yes".
