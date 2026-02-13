@@ -3,11 +3,16 @@ Low-level subprocess runner for CDO commands.
 """
 
 import os
+import re
 import shlex
 import subprocess
 import tempfile
+import threading
 from pathlib import Path
 from typing import List, Optional, Union
+
+# Pattern CDO prints to stderr when processing completes successfully.
+_CDO_DONE_RE = re.compile(r"Processed \d+ values? from \d+ variable")
 
 
 class CdoError(Exception):
@@ -43,6 +48,10 @@ class CdoRunner:
         self.env = env or os.environ.copy()
         self.debug = debug
 
+    # -----------------------------------------------------------------
+    # Process management helpers
+    # -----------------------------------------------------------------
+
     @staticmethod
     def _kill_proc_tree(proc: subprocess.Popen) -> None:
         """Kill a process and all its children.
@@ -67,6 +76,173 @@ class CdoRunner:
                 proc.kill()
             except OSError:
                 pass
+
+    # -----------------------------------------------------------------
+    # Core execution – with Windows exit-hang workaround
+    # -----------------------------------------------------------------
+
+    def _exec(self, cmd: List[str], timeout: Optional[int],
+              cmd_label: Optional[str] = None,
+              output_file: Optional[str] = None) -> subprocess.CompletedProcess:
+        """Run *cmd* and return a CompletedProcess.
+
+        On all platforms the CDO binary is executed with PIPE on
+        stdout / stderr.  On Windows certain builds of CDO hang during
+        process exit (after data processing has already completed) when
+        the output format is set via ``-f nc*``.  Because the process
+        never exits, the pipe EOF is never reached and
+        ``communicate()`` blocks forever.
+
+        To work around this, on Windows we read stdout/stderr in daemon
+        threads (so reads are non-blocking relative to ``wait()``) and
+        use ``proc.wait()`` instead of ``proc.communicate()``.  If the
+        process does not exit within *timeout* seconds we check whether
+        CDO already finished its work: either the output file was
+        created with non-zero size, or the stderr contains the
+        "Processed N values …" completion message.  If the work is done
+        we kill the hung process and return a successful result.
+
+        Parameters
+        ----------
+        output_file : str, optional
+            Path to the expected output file.  Used on Windows to detect
+            that CDO completed its work even when the process hangs at
+            exit (stderr may be empty due to C-runtime buffering).
+        """
+        label = cmd_label or " ".join(cmd)
+        _creationflags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+
+        if os.name != "nt":
+            # --- POSIX: straightforward communicate() ----------------
+            try:
+                proc = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    stdin=subprocess.DEVNULL,
+                    text=True,
+                    env=self.env,
+                )
+                stdout, stderr = proc.communicate(timeout=timeout)
+                return subprocess.CompletedProcess(
+                    cmd, proc.returncode, stdout, stderr)
+            except subprocess.TimeoutExpired:
+                self._kill_proc_tree(proc)
+                try:
+                    proc.communicate(timeout=5)
+                except (subprocess.TimeoutExpired, OSError):
+                    pass
+                raise CdoError(
+                    f"CDO command timed out after {timeout}s: {label}",
+                    returncode=-1, stderr="", cmd=label,
+                )
+            except FileNotFoundError:
+                raise CdoError(
+                    f"CDO binary not found at: {self.cdo_path}",
+                    returncode=-1, cmd=label,
+                )
+
+        # --- Windows: threaded-pipe strategy --------------------------
+        #
+        # We still use PIPE (not file redirect) for stdout/stderr and
+        # drain them via daemon threads so that ``proc.wait()`` can time
+        # out independently of the pipe EOF.
+
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                stdin=subprocess.DEVNULL,
+                env=self.env,
+                creationflags=_creationflags,
+            )
+        except FileNotFoundError:
+            raise CdoError(
+                f"CDO binary not found at: {self.cdo_path}",
+                returncode=-1, cmd=label,
+            )
+
+        # Read pipes in daemon threads so proc.wait() can detect the
+        # timeout independently of whether the pipes have reached EOF.
+        stdout_chunks: list = []
+        stderr_chunks: list = []
+
+        def _reader(pipe, buf):
+            try:
+                while True:
+                    chunk = pipe.read(4096)
+                    if not chunk:
+                        break
+                    buf.append(chunk)
+            except (OSError, ValueError):
+                pass
+
+        tout = threading.Thread(target=_reader,
+                                args=(proc.stdout, stdout_chunks),
+                                daemon=True)
+        terr = threading.Thread(target=_reader,
+                                args=(proc.stderr, stderr_chunks),
+                                daemon=True)
+        tout.start()
+        terr.start()
+
+        hung = False
+        try:
+            proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            hung = True
+            self._kill_proc_tree(proc)
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass
+
+        # After the process is dead the pipes will reach EOF and the
+        # reader threads will finish.
+        tout.join(timeout=5)
+        terr.join(timeout=5)
+
+        stdout = b"".join(stdout_chunks).decode("utf-8", errors="replace")
+        stderr = b"".join(stderr_chunks).decode("utf-8", errors="replace")
+
+        if hung:
+            # CDO may have finished processing but hangs during exit
+            # cleanup (known issue with certain MinGW/HDF5 builds).
+            # With the fflush(stdout) fix in cdo.cc, stdout data should
+            # be available.  We also check stderr and the output file
+            # as fallbacks.
+            completed = (_CDO_DONE_RE.search(stdout)
+                         or _CDO_DONE_RE.search(stderr))
+            if not completed and output_file:
+                try:
+                    completed = os.path.isfile(output_file) and \
+                                os.path.getsize(output_file) > 0
+                except OSError:
+                    completed = False
+            if not completed and stdout.strip():
+                # Info operators (showname, sinfo, …) produce stdout
+                # but no output file.  If we captured any stdout the
+                # operator finished its work.
+                completed = True
+
+            if completed:
+                if self.debug:
+                    print("[skyborn-cdo] Process hung at exit after successful "
+                          "completion – killed.")
+                return subprocess.CompletedProcess(cmd, 0, stdout, stderr)
+
+            raise CdoError(
+                f"CDO command timed out after {timeout}s: {label}",
+                returncode=-1, stderr=stderr, cmd=label,
+            )
+
+        return subprocess.CompletedProcess(
+            cmd, proc.returncode, stdout, stderr)
+
+    # -----------------------------------------------------------------
+    # Public API
+    # -----------------------------------------------------------------
 
     def run(
         self,
@@ -121,44 +297,7 @@ class CdoRunner:
         if self.debug:
             print(f"[skyborn-cdo] Running: {' '.join(cmd)}")
 
-        # On Windows, prevent CDO from creating a visible console window
-        # or showing DLL-error dialogs that would block the process.
-        _creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
-
-        try:
-            proc = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                stdin=subprocess.DEVNULL,
-                text=True,
-                env=self.env,
-                creationflags=_creationflags,
-            )
-            stdout, stderr = proc.communicate(timeout=timeout)
-            result = subprocess.CompletedProcess(
-                cmd, proc.returncode, stdout, stderr)
-        except subprocess.TimeoutExpired:
-            # Ensure the process tree is fully killed and pipes drained.
-            # On Windows proc.kill() only kills the main process, not
-            # child processes.  Use taskkill /T to kill the whole tree.
-            self._kill_proc_tree(proc)
-            try:
-                proc.communicate(timeout=5)
-            except (subprocess.TimeoutExpired, OSError):
-                pass
-            raise CdoError(
-                f"CDO command timed out after {timeout}s: {' '.join(cmd)}",
-                returncode=-1,
-                stderr="",
-                cmd=" ".join(cmd),
-            )
-        except FileNotFoundError:
-            raise CdoError(
-                f"CDO binary not found at: {self.cdo_path}",
-                returncode=-1,
-                cmd=" ".join(cmd),
-            )
+        result = self._exec(cmd, timeout, output_file=output_file)
 
         if self.debug and result.stderr:
             print(f"[skyborn-cdo] stderr: {result.stderr}")
@@ -216,34 +355,15 @@ class CdoRunner:
         if self.debug:
             print(f"[skyborn-cdo] Running: {' '.join(cmd)}")
 
-        _creationflags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
+        # Guess the output file: last non-option argument.
+        _outf = None
+        for _p in reversed(cmd[1:]):
+            if not _p.startswith("-"):
+                _outf = _p
+                break
 
-        try:
-            proc = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                stdin=subprocess.DEVNULL,
-                text=True,
-                env=self.env,
-                creationflags=_creationflags,
-            )
-            stdout, stderr = proc.communicate(timeout=timeout)
-            result = subprocess.CompletedProcess(
-                cmd, proc.returncode, stdout, stderr)
-        except subprocess.TimeoutExpired:
-            # Ensure the process tree is fully killed and pipes drained.
-            self._kill_proc_tree(proc)
-            try:
-                proc.communicate(timeout=5)
-            except (subprocess.TimeoutExpired, OSError):
-                pass
-            raise CdoError(
-                f"CDO command timed out after {timeout}s: {cmd_string}",
-                returncode=-1,
-                stderr="",
-                cmd=cmd_string,
-            )
+        result = self._exec(cmd, timeout, cmd_label=cmd_string,
+                            output_file=_outf)
 
         if result.returncode != 0:
             raise CdoError(
